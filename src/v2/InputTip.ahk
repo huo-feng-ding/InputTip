@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 ;@AHK2Exe-SetName InputTip
-;@AHK2Exe-SetVersion 2.25.1
+;@AHK2Exe-SetVersion 2.26.2
 ;@AHK2Exe-SetLanguage 0x0804
 ;@Ahk2Exe-SetMainIcon ..\favicon.ico
 ;@AHK2Exe-SetDescription InputTip - 一个输入法状态(中文/英文/大写锁定)提示工具
@@ -19,12 +19,15 @@ InstallMouseHook
 CoordMode 'Mouse', 'Screen'
 SetStoreCapsLockMode 0
 
+A_IconTip := "InputTip - 一个输入法状态(中文/英文/大写锁定)提示工具"
+
 #Include .\utils\ini.ahk
 #Include ..\utils\IME.ahk
 #Include ..\utils\showMsg.ahk
-#Include ..\utils\checkVersion.ahk
+#Include .\utils\createGui.ahk
+#Include .\utils\checkVersion.ahk
 
-currentVersion := "2.25.1"
+currentVersion := "2.26.2"
 
 filename := SubStr(A_ScriptName, 1, StrLen(A_ScriptName) - 4)
 
@@ -34,15 +37,19 @@ filelnk := filename ".lnk"
 HKEY_startup := "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run"
 
 if (A_IsCompiled) {
+    favicon := A_ScriptFullPath
     ; 生成特殊的快捷方式，它会通过任务计划程序启动
     if (!FileExist(filelnk)) {
-        FileCreateShortcut("C:\WINDOWS\system32\schtasks.exe", filelnk, , "/run /tn `"abgox.InputTip.noUAC`"", , A_ScriptFullPath, , , 7)
+        FileCreateShortcut("C:\WINDOWS\system32\schtasks.exe", filelnk, , "/run /tn `"abgox.InputTip.noUAC`"", , favicon, , , 7)
     }
 
     ; 生成任务计划程序
     try {
         Run('powershell -NoProfile -Command $action = New-ScheduledTaskAction -Execute "`'\"' A_ScriptFullPath '\"`'";$principal = New-ScheduledTaskPrincipal -UserId "' A_UserName '" -LogonType ServiceAccount -RunLevel Highest;$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -DontStopOnIdleEnd -ExecutionTimeLimit 10 -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1);$task = New-ScheduledTask -Action $action -Principal $principal -Settings $settings;Register-ScheduledTask -TaskName "abgox.InputTip.noUAC" -InputObject $task -Force', , "Hide")
     }
+} else {
+    favicon := A_ScriptDir "\..\favicon.ico"
+    TraySetIcon(favicon)
 }
 
 ; 用于在 GUI 展示时阻塞进程
@@ -56,15 +63,15 @@ if (FileExist("InputTip.ini")) {
 } else {
     confirmGui := Gui("AlwaysOnTop OwnDialogs")
     confirmGui.SetFont("s12", "微软雅黑")
-    confirmGui.AddText(, "InputTip.exe 会根据不同的输入法状态(中英文/大写锁定)修改鼠标样式`n(更多信息，请点击托盘菜单中的 「关于」，前往官网或项目中查看)")
+    confirmGui.AddText(, A_ScriptName " 会根据不同的输入法状态(中英文/大写锁定)修改鼠标样式`n(更多信息，请点击托盘菜单中的 「关于」，前往官网或项目中查看)")
     confirmGui.Show("Hide")
     confirmGui.GetPos(, , &Gui_width)
     confirmGui.Destroy()
 
     confirmGui := Gui("AlwaysOnTop OwnDialogs")
     confirmGui.SetFont("s12", "微软雅黑")
-    confirmGui.AddText(, "InputTip.exe 会根据不同的输入法状态(中英文/大写锁定)修改鼠标样式`n(更多信息，请点击托盘菜单中的 「关于」，前往官网或项目中查看)")
-    confirmGui.AddText(, "您是否希望 InputTip.exe 修改鼠标样式?")
+    confirmGui.AddText(, A_ScriptName " 会根据不同的输入法状态(中英文/大写锁定)修改鼠标样式`n(更多信息，请点击托盘菜单中的 「关于」，前往官网或项目中查看)")
+    confirmGui.AddText(, "您是否希望 " A_ScriptName " 修改鼠标样式?")
     confirmGui.AddButton("w" Gui_width, "确认修改").OnEvent("Click", yes)
     yes(*) {
         writeIni("changeCursor", 1)
@@ -89,12 +96,87 @@ if (FileExist("InputTip.ini")) {
 
 ; 忽略更新
 ignoreUpdate := readIni("ignoreUpdate", 0)
-if (A_IsCompiled && !ignoreUpdate) {
-    checkVersion(currentVersion, "v2")
+if (!ignoreUpdate) {
+    if (A_IsCompiled) {
+        checkVersion(currentVersion, "v2", updateConfirm)
+        updateConfirm(whichVersion, newVersion, currentVersion) {
+            createGui(fn).Show()
+            fn(x, y, w, h) {
+                g := Gui("AlwaysOnTop OwnDialogs", A_ScriptName " - 版本更新")
+                g.SetFont("s12", "微软雅黑")
+                g.AddText(, "InputTip " whichVersion " 有新版本了!")
+                g.AddText(, currentVersion " => " newVersion)
+                g.AddText(, "从以下任意地址获取版本更新日志:")
+                g.AddLink("xs", '<a href="https://inputtip.pages.dev/' whichVersion '/changelog">https://inputtip.pages.dev/' whichVersion '/changelog</a>`n<a href="https://github.com/abgox/InputTip/blob/main/src/' whichVersion '/CHANGELOG.md">https://github.com/abgox/InputTip/blob/main/src/' whichVersion '/CHANGELOG.md</a>`n<a href="https://gitee.com/abgox/InputTip/blob/main/src/' whichVersion '/CHANGELOG.md">https://gitee.com/abgox/InputTip/blob/main/src/' whichVersion '/CHANGELOG.md</a>')
+                g.AddText("xs", "--------------------------------------------------------------------------------------")
+                g.AddText("xs", "是否更新到最新版本?`n只需要确认更新，会自动下载新版本替代旧版本并重启")
+                g.AddButton("xs w" w, "确认更新").OnEvent("Click", yes)
+                yes(*) {
+                    g.Destroy()
+                    try {
+                        Download("https://inputtip.pages.dev/releases/" whichVersion "/InputTip.exe", A_AppData "\abgox-InputTip.exe")
+                        try {
+                            RunWait('powershell -NoProfile -Command Stop-Process -Name InputTip.JAB.JetBrains -Force', , "Hide")
+                            FileDelete("InputTip.JAB.JetBrains.exe")
+                        }
+                        Run("powershell -NoProfile -Command Start-Sleep -Seconds 3;Move-Item -Force '" A_AppData "\abgox-InputTip.exe' '" A_ScriptDir "\" A_ScriptName "';Start-Process '" A_ScriptDir "\" A_ScriptName "'", , "Hide")
+                        ExitApp()
+                    } catch {
+                        errGui := Gui("AlwaysOnTop OwnDialogs")
+                        errGui.SetFont("s12", "微软雅黑")
+                        errGui.AddText(, "InputTip " whichVersion " 新版本下载错误!")
+                        errGui.AddText("xs", "手动前往官网下载最新版本!")
+                        errGui.AddText(, "----------------------")
+                        errGui.AddText("xs", "官网:")
+                        errGui.AddLink("yp", '<a href="https://inputtip.pages.dev">https://inputtip.pages.dev</a>')
+                        errGui.AddText("xs", "Github:")
+                        errGui.AddLink("yp", '<a href="https://github.com/abgox/InputTip">https://github.com/abgox/InputTip</a>')
+                        errGui.AddText("xs", "Gitee: :")
+                        errGui.AddLink("yp", '<a href="https://gitee.com/abgox/InputTip">https://gitee.com/abgox/InputTip</a>')
+                        errGui.Show()
+                    }
+                }
+                g.AddButton("xs w" w, "忽略更新").OnEvent("Click", no)
+                no(*) {
+                    g.Destroy()
+                    global ignoreUpdate := 1
+                    writeIni("ignoreUpdate", 1)
+                    A_TrayMenu.Check("忽略更新")
+                    showMsg(["忽略版本更新成功!", "即使有新版本下次启动时也不会再提示更新!", "如果你在使用过程中有任何问题，你需要确定当前是否为最新版本!", "如果更新到最新版本，问题依然存在，请前往 Github 发起一个 issue", "Github 和其他相关地址可以在软件托盘菜单的 `"关于`" 中找到"])
+                }
+                return g
+            }
+        }
+    } else {
+        checkVersion(currentVersion, "v2", updatePrompt)
+        updatePrompt(whichVersion, newVersion, currentVersion) {
+            createGui(fn).Show()
+            fn(x, y, w, h) {
+                g := Gui("AlwaysOnTop OwnDialogs")
+                g.SetFont("s12", "微软雅黑")
+                g.AddText(, "- 您正在通过项目源代码启动 InputTip`n- 当前 InputTip 有了新版本 v" currentVersion " > v" newVersion "`n- 请自行使用 git pull 获取最新的代码更改")
+                g.AddLink("xs", 'Github: <a href="https://github.com/abgox/InputTip#兼容情况">https://github.com/abgox/InputTip</a>`nGitee: <a href="https://gitee.com/abgox/InputTip#兼容情况">https://gitee.com/abgox/InputTip</a>')
+                g.AddButton("w" w, "确定").OnEvent("Click", fn_exit)
+                fn_exit(*) {
+                    g.Destroy()
+                }
+                g.AddButton("xs w" w, "忽略更新").OnEvent("Click", no)
+                no(*) {
+                    g.Destroy()
+                    global ignoreUpdate := 1
+                    writeIni("ignoreUpdate", 1)
+                    A_TrayMenu.Check("忽略更新")
+                    showMsg(["忽略版本更新成功!", "即使有新版本下次启动时也不会再提示更新!", "如果你在使用过程中有任何问题，你需要确定当前是否为最新版本!", "如果更新到最新版本，问题依然存在，请前往 Github 发起一个 issue", "Github 和其他相关地址可以在软件托盘菜单的 `"关于`" 中找到"])
+                }
+                return g
+            }
+        }
+    }
 }
 
 ; 输入法模式
 mode := readIni("mode", 2, "InputMethod")
+delay := readIni("delay", 50)
 ; 开机自启动
 isStartUp := readIni("isStartUp", 0)
 ; 启用 JetBrains 支持
@@ -484,7 +566,7 @@ if (changeCursor) {
             }
             if (InStr(JetBrains_list, ":" exe_name ":")) {
                 TipGui.Hide()
-                Sleep(50)
+                Sleep(delay)
                 continue
             }
             is_hide_state := 0
@@ -507,6 +589,7 @@ if (changeCursor) {
             is_hide_state := InStr(app_hide_state, ":" exe_name ":")
             if (needHide && HideSymbolDelay && A_TimeIdleKeyboard > HideSymbolDelay) {
                 TipGui.Hide()
+                Sleep(delay)
                 continue
             }
             if (A_TimeIdle < 500) {
@@ -535,7 +618,7 @@ if (changeCursor) {
                     old_left := left
                     old_top := top
                     old_state := state
-                    Sleep(50)
+                    Sleep(delay)
                     continue
                 }
                 try {
@@ -543,7 +626,7 @@ if (changeCursor) {
                     v := state = 1 ? "CN" : "EN"
                 } catch {
                     TipGui.Hide()
-                    Sleep(50)
+                    Sleep(delay)
                     continue
                 }
                 if (state != old_state) {
@@ -567,7 +650,7 @@ if (changeCursor) {
                     }
                 }
             }
-            Sleep(50)
+            Sleep(delay)
         }
     } else {
         while 1 {
@@ -575,7 +658,7 @@ if (changeCursor) {
                 exe_name := ProcessGetName(WinGetPID("A"))
             }
             if (InStr(JetBrains_list, ":" exe_name ":")) {
-                Sleep(50)
+                Sleep(delay)
                 continue
             }
             if (exe_name != lastWindow) {
@@ -596,14 +679,14 @@ if (changeCursor) {
                         state := 2
                     }
                     old_state := state
-                    Sleep(50)
+                    Sleep(delay)
                     continue
                 }
                 try {
                     state := isCN(mode)
                     v := state = 1 ? "CN" : "EN"
                 } catch {
-                    Sleep(50)
+                    Sleep(delay)
                     continue
                 }
                 if (state != old_state) {
@@ -611,7 +694,7 @@ if (changeCursor) {
                     old_state := state
                 }
             }
-            Sleep(50)
+            Sleep(delay)
         }
     }
     show(type) {
@@ -627,7 +710,7 @@ if (changeCursor) {
             }
             if (InStr(JetBrains_list, ":" exe_name ":")) {
                 TipGui.Hide()
-                Sleep(50)
+                Sleep(delay)
                 continue
             }
             is_hide_state := 0
@@ -650,6 +733,7 @@ if (changeCursor) {
             is_hide_state := InStr(app_hide_state, ":" exe_name ":")
             if (needHide && HideSymbolDelay && A_TimeIdleKeyboard > HideSymbolDelay) {
                 TipGui.Hide()
+                Sleep(delay)
                 continue
             }
             if (A_TimeIdle < 500) {
@@ -677,7 +761,7 @@ if (changeCursor) {
                     old_left := left
                     old_top := top
                     old_state := state
-                    Sleep(50)
+                    Sleep(delay)
                     continue
                 }
                 try {
@@ -685,7 +769,7 @@ if (changeCursor) {
                     v := state = 1 ? "CN" : "EN"
                 } catch {
                     TipGui.Hide()
-                    Sleep(50)
+                    Sleep(delay)
                     continue
                 }
                 if (state != old_state) {
@@ -708,7 +792,7 @@ if (changeCursor) {
                     }
                 }
             }
-            Sleep(50)
+            Sleep(delay)
         }
     }
 }
@@ -788,52 +872,55 @@ makeTrayMenu() {
             global isStartUp := 0
             writeIni("isStartUp", isStartUp)
         } else {
-            startUpGui := Gui("AlwaysOnTop +OwnDialogs", "设置开机自启动")
-            startUpGui.SetFont("s12", "微软雅黑")
-            startUpGui.AddText(, "当前有多种方式设置开机自启动，请选择有效的方式 :`n`n1. 通过「任务计划程序」`n2. 通过软件快捷方式`n3. 通过添加「注册表」`n`n「任务计划程序」可以避免管理员授权窗口(UAC)的干扰，但部分用户无法生效")
-            startUpGui.Show("Hide")
-            startUpGui.GetPos(, , &Gui_width)
-            startUpGui.Destroy()
-
-            startUpGui := Gui("AlwaysOnTop +OwnDialogs", "设置开机自启动")
-            startUpGui.SetFont("s12", "微软雅黑")
-            startUpGui.AddLink(, '详情: <a href="https://inputtip.pages.dev/FAQ/#关于开机自启动">https://inputtip.pages.dev/FAQ/#关于开机自启动</a>')
-            startUpGui.AddLink(, "当前有多种方式设置开机自启动，请选择有效的方式 :`n`n1. 通过「任务计划程序」`n2. 通过软件快捷方式`n3. 通过添加「注册表」`n`n「任务计划程序」可以避免管理员授权窗口(UAC)的干扰，但部分用户无法生效")
-            btn := startUpGui.AddButton("w" Gui_width, "使用「任务计划程序」")
-            btn.Focus()
-            btn.OnEvent("Click", fn_startUp_task)
-            fn_startUp_task(*) {
-                global isStartUp := 1
-                FileCopy(A_ScriptDir "\" filelnk, A_Startup, 1)
-                fn_handle()
-            }
-            startUpGui.AddButton("w" Gui_width, "使用软件快捷方式").OnEvent("Click", fn_startUp_lnk)
-            fn_startUp_lnk(*) {
-                global isStartUp := 2
-                FileCreateShortcut(A_ScriptFullPath, A_Startup "\" filelnk, , , , A_ScriptFullPath, , , 7)
-                fn_handle()
-            }
-            startUpGui.AddButton("w" Gui_width, "使用「注册表」").OnEvent("Click", fn_startUp_reg)
-            fn_startUp_reg(*) {
-                global isStartUp := 3
-                try {
-                    RegWrite(A_ScriptFullPath, "REG_SZ", "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run", A_ScriptName)
-                    A_TrayMenu.ToggleCheck(item)
-                    fn_handle()
-                } catch {
-                    MsgBox("添加注册表失败!", , "0x1000 0x10")
-                }
-            }
-            fn_handle() {
-                startUpGui.Destroy()
-                if (isStartUp) {
-                    A_TrayMenu.Check(item)
+            createGui(fn).Show()
+            fn(x, y, w, h) {
+                g := Gui("AlwaysOnTop +OwnDialogs", "设置开机自启动")
+                g.SetFont("s12", "微软雅黑")
+                g.AddLink(, '详情: <a href="https://inputtip.pages.dev/FAQ/#关于开机自启动">https://inputtip.pages.dev/FAQ/#关于开机自启动</a>')
+                g.AddLink(, "当前有多种方式设置开机自启动，请选择有效的方式 :`n`n1. 通过「任务计划程序」`n2. 通过软件快捷方式`n3. 通过添加「注册表」`n`n「任务计划程序」可以避免管理员授权窗口(UAC)的干扰，但部分用户无法生效")
+                if (A_IsAdmin) {
+                    isDisabled := ''
+                    pad := ''
                 } else {
-                    A_TrayMenu.Uncheck(item)
+                    isDisabled := ' Disabled'
+                    pad := ' (以管理员模式运行时可用)'
                 }
-                writeIni("isStartUp", isStartUp)
+                btn := g.AddButton("w" w isDisabled, "使用「任务计划程序」" pad)
+                btn.Focus()
+                btn.OnEvent("Click", fn_startUp_task)
+                fn_startUp_task(*) {
+                    global isStartUp := 1
+                    FileCreateShortcut("C:\WINDOWS\system32\schtasks.exe", A_Startup "\" filelnk, , "/run /tn `"abgox.InputTip.noUAC`"", , favicon, , , 7)
+                    fn_handle()
+                }
+                g.AddButton("w" w, "使用软件快捷方式").OnEvent("Click", fn_startUp_lnk)
+                fn_startUp_lnk(*) {
+                    global isStartUp := 2
+                    FileCreateShortcut(A_ScriptFullPath, A_Startup "\" filelnk, , , , favicon, , , 7)
+                    fn_handle()
+                }
+                g.AddButton("w" w isDisabled, "使用「注册表」" pad).OnEvent("Click", fn_startUp_reg)
+                fn_startUp_reg(*) {
+                    global isStartUp := 3
+                    try {
+                        RegWrite(A_ScriptFullPath, "REG_SZ", "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run", A_ScriptName)
+                        A_TrayMenu.ToggleCheck(item)
+                        fn_handle()
+                    } catch {
+                        MsgBox("添加注册表失败!", , "0x1000 0x10")
+                    }
+                }
+                fn_handle() {
+                    g.Destroy()
+                    if (isStartUp) {
+                        A_TrayMenu.Check(item)
+                    } else {
+                        A_TrayMenu.Uncheck(item)
+                    }
+                    writeIni("isStartUp", isStartUp)
+                }
+                return g
             }
-            startUpGui.Show()
         }
     }
     if (isStartUp) {
@@ -845,40 +932,37 @@ makeTrayMenu() {
         sub.Add(v, fn_mode)
         fn_mode(item, index, *) {
             mode := readIni("mode", 1, "InputMethod")
-            msgGui := Gui("AlwaysOnTop +OwnDialogs")
-            msgGui.SetFont("s10", "微软雅黑")
-            msgGui.AddText(, "------------------------------------------------------------------------------------------------------------")
-            msgGui.Show("Hide")
-            msgGui.GetPos(, , &Gui_width)
-            msgGui.Destroy()
+            createGui(fn).Show()
+            fn(x, y, w, h) {
+                modeInfo := [
+                    "1.「模式1」和「模式2」都是通用的输入法模式`n2. 和「模式2」相比，「模式1」兼容的输入法和应用窗口少一点，但识别输入法状态更稳定一点",
+                    "1.「模式1」和「模式2」都是通用的输入法模式`n2. 和「模式1」相比，「模式2」兼容的输入法和应用窗口更多，但有极小概率出现状态识别错误`n3. 如果在某个应用窗口中出现识别错误，请尝试重启这个应用窗口",
+                    "1.「模式3」: 主要用于讯飞输入法`n2. 如果您使用的输入法其他模式都无法识别，您才应该尝试「模式3」",
+                    "1.「模式4」: 主要用于手心输入法`n2. 如果您使用的输入法其他模式都无法识别，您才应该尝试「模式4」"
+                ]
 
-            modeInfo := [
-                "1.「模式1」和「模式2」都是通用的输入法模式`n2. 和「模式2」相比，「模式1」兼容的输入法和应用窗口少一点，但识别输入法状态更稳定一点",
-                "1.「模式1」和「模式2」都是通用的输入法模式`n2. 和「模式1」相比，「模式2」兼容的输入法和应用窗口更多，但有极小概率出现状态识别错误`n3. 如果在某个应用窗口中出现识别错误，请尝试重启这个应用窗口",
-                "1.「模式3」: 主要用于讯飞输入法`n2. 如果您使用的输入法其他模式都无法识别，您才应该尝试「模式3」",
-                "1.「模式4」: 主要用于手心输入法`n2. 如果您使用的输入法其他模式都无法识别，您才应该尝试「模式4」"
-            ]
-
-            msgGui := Gui("AlwaysOnTop +OwnDialogs", A_ScriptName " - 模式切换")
-            msgGui.SetFont("s12", "微软雅黑")
-            if (mode != index) {
-                msgGui.AddText("", "是否要从 「模式" mode "」 切换到 「模式" index "」?`n--------------------------------------------------------------------------------------------------")
-                msgGui.AddText(, modeInfo[index])
-            } else {
-                msgGui.AddText(, "当前正在使用 「模式" index "」`n--------------------------------------------------------------------------------------------------")
-                msgGui.AddText(, modeInfo[index])
+                g := Gui("AlwaysOnTop +OwnDialogs", A_ScriptName " - 模式切换")
+                g.SetFont("s12", "微软雅黑")
+                line := "`n--------------------------------------------------------------------------------------------------"
+                if (mode != index) {
+                    g.AddText("", "是否要从 「模式" mode "」 切换到 「模式" index "」?" line)
+                    g.AddText(, modeInfo[index])
+                } else {
+                    g.AddText(, "当前正在使用 「模式" index "」" line)
+                    g.AddText(, modeInfo[index])
+                }
+                g.AddText(, "模式相关信息请查看以下任意地址:")
+                g.AddLink("xs", '官网: <a href="https://inputtip.pages.dev/v2/#兼容情况">https://inputtip.pages.dev/v2/#兼容情况</a>`nGithub: <a href="https://github.com/abgox/InputTip#兼容情况">https://github.com/abgox/InputTip#兼容情况</a>`nGitee: <a href="https://gitee.com/abgox/InputTip#兼容情况">https://gitee.com/abgox/InputTip#兼容情况</a>')
+                btn := g.AddButton("xs w" w, "确认")
+                btn.Focus()
+                btn.OnEvent("Click", yes)
+                yes(*) {
+                    g.Destroy()
+                    writeIni("mode", index, "InputMethod")
+                    fn_restart()
+                }
+                return g
             }
-            msgGui.AddText(, "模式相关信息请查看以下任意地址:")
-            msgGui.AddLink("xs", '官网: <a href="https://inputtip.pages.dev/v2/#兼容情况">https://inputtip.pages.dev/v2/#兼容情况</a>`nGithub: <a href="https://github.com/abgox/InputTip#兼容情况">https://github.com/abgox/InputTip#兼容情况</a>`nGitee: <a href="https://gitee.com/abgox/InputTip#兼容情况">https://gitee.com/abgox/InputTip#兼容情况</a>')
-            btn := msgGui.AddButton("xs w" Gui_width + msgGui.MarginX * 2, "确认")
-            btn.Focus()
-            btn.OnEvent("Click", yes)
-            yes(*) {
-                msgGui.Destroy()
-                writeIni("mode", index, "InputMethod")
-                fn_restart()
-            }
-            msgGui.Show()
         }
     }
     A_TrayMenu.Add("设置输入法模式", sub)
@@ -934,24 +1018,28 @@ makeTrayMenu() {
 
         configGui.AddText("Section", "在更改配置前，您应该首先阅读一下项目的 README，相当于软件的说明书")
         configGui.AddText("xs", "您可以点击以下相关网址中查看软件源代码、使用说明文档等详细内容：")
-        configGui.AddLink("xs", '1. 官网: <a href="https://inputtip.pages.dev/v2/">https://inputtip.pages.dev/v2/</a>')
-        configGui.AddLink("xs", '2. Github: <a href="https://github.com/abgox/InputTip">https://github.com/abgox/InputTip</a>')
-        configGui.AddLink("xs", '3. Gitee: <a href="https://gitee.com/abgox/InputTip">https://gitee.com/abgox/InputTip</a>')
-        configGui.AddLink("xs", '4. 常见问题: <a href="https://inputtip.pages.dev/FAQ/">https://inputtip.pages.dev/FAQ/</a>')
+        configGui.AddLink("xs", '<a href="https://inputtip.pages.dev/v2/">文档官网</a>')
+        configGui.AddLink("yp", '<a href="https://github.com/abgox/InputTip">Github</a>')
+        configGui.AddLink("yp", '<a href="https://gitee.com/abgox/InputTip">Gitee</a>')
+        configGui.AddLink("yp", '<a href="https://inputtip.pages.dev/FAQ/">一些常见的使用问题</a>')
         configGui.AddText("xs", line)
         configGui.AddText("xs", "相关的显示设置：")
         configGui.AddText("xs", "1. 要不要修改鼠标样式: ")
-        configGui.AddDropDownList("w" Gui_width / 2 " yp AltSubmit vchangeCursor Choose" changeCursor + 1, ["不修改鼠标样式，保持原本的鼠标样式", "要修改鼠标样式，随输入法状态而变化"])
+        configGui.AddDropDownList("w" Gui_width / 2 " yp AltSubmit vchangeCursor Choose" changeCursor + 1, ["不要修改鼠标样式，保持原本的鼠标样式", "需要修改鼠标样式，随输入法状态而变化"])
         configGui.addText("xs", "2. 在输入光标附近显示什么类型的符号: ")
         configGui.AddDropDownList("yp AltSubmit vsymbolType Choose" symbolType + 1, ["不显示符号", "显示图片符号", "显示方块符号", "显示文本符号"])
-        configGui.AddText("xs", "3. 符号在多少毫秒后隐藏(0 表示永不隐藏):")
-        configGui.AddEdit("vHideSymbolDelay" " yp w150 Number", HideSymbolDelay)
-        configGui.AddText("xs", "(符号隐藏后，当前应用中的任何鼠标操作都不会再显示，直到下一次键盘操作或切换应用)")
+        configGui.AddText("xs", "3. 无操作时，符号在多少毫秒后隐藏:")
+        configGui.AddEdit("vHideSymbolDelay yp w150 Number", HideSymbolDelay)
+        configGui.AddEdit("xs r2 Disabled", "单位: 毫秒，默认为 0 毫秒，表示不隐藏符号`n符号隐藏后，下次键盘操作或切换软件窗口会再次显示符号)")
+        configGui.AddText("xs", "4. 每多少毫秒后更新符号的显示位置和状态:")
+        configGui.AddEdit("vDelay yp w150 Number", delay)
+        ; configGui.AddUpDown("Range1-500", delay)
+        configGui.AddEdit("xs r1 Disabled", "(单位：毫秒，默认为 50 毫秒；值越小，响应越快，性能消耗越大，根据电脑性能适当调整)")
 
         tab.UseTab(2)
         configGui.AddText(, "您可以点击以下任意网址获取设置鼠标样式文件夹的相关说明:`n(您应该先了解相关说明，然后点击下方按钮进行设置)")
         configGui.AddLink(, '<a href="https://inputtip.pages.dev/v2/#自定义鼠标样式">https://inputtip.pages.dev/v2/#自定义鼠标样式</a>`n<a href="https://github.com/abgox/InputTip#自定义鼠标样式">https://github.com/abgox/InputTip#自定义鼠标样式</a>`n<a href="https://gitee.com/abgox/InputTip#自定义鼠标样式">https://gitee.com/abgox/InputTip#自定义鼠标样式</a>`n' line)
-        cursorDirlist := [{
+        cursorDirList := [{
             label: "中文状态鼠标样式",
             folder: "CN",
         }, {
@@ -961,13 +1049,13 @@ makeTrayMenu() {
             label: "大写锁定鼠标样式",
             folder: "Caps",
         }]
-        for v in cursorDirlist {
+        for v in cursorDirList {
             btnGui := configGui.AddButton("w" Gui_width, "设置" v.label)
             btnGui.data := v
             btnGui.OnEvent("Click", fn_btn)
             fn_btn(item, *) {
                 if (!changeCursor) {
-                    MsgBox("请先在配置中将 是否更改鼠标样式 设置为 1，再进行此操作。", "InputTip.exe - 错误！", "0x10 0x1000")
+                    MsgBox("请先在配置中将 是否更改鼠标样式 设置为 1，再进行此操作。", A_ScriptName " - 错误！", "0x10 0x1000")
                     return
                 }
                 dir := FileSelect("D", A_ScriptDir "\InputTipCursor", "选择一个文件夹作为" item.data.label " (不能是 CN/EN/Caps 文件夹)")
@@ -982,7 +1070,7 @@ makeTrayMenu() {
                     }
                 }
                 if (!hasFile) {
-                    MsgBox("您应该选择一个包含鼠标样式文件的文件夹。`n鼠标样式文件: 后缀名为 .cur 或 .ani 的文件", "InputTip.exe - 选择文件夹错误！", "0x10 0x1000")
+                    MsgBox("您应该选择一个包含鼠标样式文件的文件夹。`n鼠标样式文件: 后缀名为 .cur 或 .ani 的文件", A_ScriptName " - 选择文件夹错误！", "0x10 0x1000")
                     return
                 }
                 dir_name := StrSplit(dir, "\")[-1]
@@ -1274,6 +1362,7 @@ makeTrayMenu() {
                 for item in symbolCharConfig {
                     writeIni(item.config, configGui.Submit().%item.config%)
                 }
+                writeIni("delay", configGui.Submit().delay)
                 writeIni("HideSymbolDelay", configGui.Submit().HideSymbolDelay)
                 writeIni("symbolType", configGui.Submit().symbolType - 1)
                 writeIni("changeCursor", configGui.Submit().changeCursor - 1)
@@ -1287,7 +1376,7 @@ makeTrayMenu() {
     fn_switch_key(*) {
         hotkeyGui := Gui("AlwaysOnTop OwnDialogs")
         hotkeyGui.SetFont("s12", "微软雅黑")
-        hotkeyGui.AddText(, "- 目前直接设置单键，如 LShfit,会直接导致原按键功能失效，请设置组合快捷键")
+        hotkeyGui.AddText(, "- 目前直接设置单键，如 LShift,会直接导致原按键功能失效，请设置组合快捷键")
         hotkeyGui.Show("Hide")
         hotkeyGui.GetPos(, , &Gui_width)
         hotkeyGui.Destroy()
@@ -1773,7 +1862,7 @@ makeTrayMenu() {
 
         JetBrains_offset(*) {
             offsetGui.Destroy()
-            JetBrainsGui := Gui("AlwaysOnTop OwnDialogs", "InputTip.exe - 设置 JetBrains 系列 IDE 的副屏偏移量")
+            JetBrainsGui := Gui("AlwaysOnTop OwnDialogs", A_ScriptName " - 设置 JetBrains 系列 IDE 的副屏偏移量")
             JetBrainsGui.SetFont("s12", "微软雅黑")
             screenList := getScreenInfo()
             JetBrainsGui.AddText(, "您需要通过屏幕坐标信息判断具体是哪一块屏幕`n - 假设您有两块屏幕，主屏幕在左侧，副屏幕在右侧`n - 那么副屏幕的左上角 X 坐标一定大于主屏幕的右下角 X 坐标`n - 以此判断以下屏幕哪一块是右侧的屏幕")
@@ -1842,10 +1931,6 @@ makeTrayMenu() {
             FileInstall("InputTip.JAB.JetBrains.exe", "InputTip.JAB.JetBrains.exe", 1)
             waitFileInstall("InputTip.JAB.JetBrains.exe", 0)
 
-            try {
-                RunWait('powershell -NoProfile -Command $action = New-ScheduledTaskAction -Execute "`'\"' A_ScriptDir '\InputTip.JAB.JetBrains.exe\"`'";$principal = New-ScheduledTaskPrincipal -UserId "' A_UserName '" -LogonType ServiceAccount -RunLevel Limited;$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -DontStopOnIdleEnd -ExecutionTimeLimit 10 -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1);$task = New-ScheduledTask -Action $action -Principal $principal -Settings $settings;Register-ScheduledTask -TaskName "abgox.InputTip.JAB.JetBrains" -InputObject $task -Force', , "Hide")
-            }
-
             jGui := Gui("AlwaysOnTop OwnDialogs")
             jGui.SetFont("s12", "微软雅黑")
             jGui.AddText(, "1. 开启 Java Access Bridge`n2. 点击托盘菜单中的 「添加 JetBrains IDE 应用」，确保您使用的 JetBrains IDE 已经被添加`n3. 重启 InputTip")
@@ -1863,15 +1948,17 @@ makeTrayMenu() {
             jGui.AddLink(, '<a href="https://gitee.com/abgox/InputTip#如何在-jetbrains-系列-ide-中使用-inputtip">https://gitee.com/abgox/InputTip#如何在-jetbrains-系列-ide-中使用-inputtip</a>')
             jGui.AddButton("xs w" Gui_width, "确定").OnEvent("Click", confirm)
             confirm(*) {
-                fn_contorl_JetBrains(1)
+                fn_control_JetBrains(1)
                 jGui.Destroy()
             }
             jGui.Show()
         } else {
             RunWait('powershell -NoProfile -Command Stop-Process -Name InputTip.JAB.JetBrains -Force', , "Hide")
-            Run('powershell -NoProfile -Command Unregister-ScheduledTask -TaskName "abgox.InputTip.JAB.JetBrains" -Confirm:$false', , "Hide")
-            try {
-                FileDelete("InputTip.JAB.JetBrains.exe")
+            if (A_IsAdmin) {
+                Run('powershell -NoProfile -Command Unregister-ScheduledTask -TaskName "abgox.InputTip.JAB.JetBrains" -Confirm:$false', , "Hide")
+                try {
+                    FileDelete("InputTip.JAB.JetBrains.exe")
+                }
             }
         }
     }
@@ -1898,10 +1985,7 @@ makeTrayMenu() {
     }
     if (enableJetBrainsSupport) {
         A_TrayMenu.Check("启用 JetBrains IDE 支持")
-        try {
-            RunWait('powershell -NoProfile -Command $action = New-ScheduledTaskAction -Execute "`'\"' A_ScriptDir '\InputTip.JAB.JetBrains.exe\"`'";$principal = New-ScheduledTaskPrincipal -UserId "' A_UserName '" -LogonType ServiceAccount -RunLevel Limited;$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -DontStopOnIdleEnd -ExecutionTimeLimit 10 -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1);$task = New-ScheduledTask -Action $action -Principal $principal -Settings $settings;Register-ScheduledTask -TaskName "abgox.InputTip.JAB.JetBrains" -InputObject $task -Force', , "Hide")
-        }
-        fn_contorl_JetBrains(1)
+        fn_control_JetBrains(1)
     }
     A_TrayMenu.Add()
     A_TrayMenu.Add("关于", fn_about)
@@ -1915,7 +1999,7 @@ makeTrayMenu() {
         aboutGui.GetPos(, , &Gui_width)
         aboutGui.Destroy()
 
-        aboutGui := Gui("AlwaysOnTop OwnDialogs", "InputTip.exe - v" currentVersion)
+        aboutGui := Gui("AlwaysOnTop OwnDialogs", A_ScriptName " - v" currentVersion)
         aboutGui.SetFont("s12", "微软雅黑")
         aboutGui.AddText("Center w" Gui_width, "InputTip - 一个输入法状态(中文/英文/大写锁定)实时提示工具")
         tab := aboutGui.AddTab3("w" Gui_width + aboutGui.MarginX * 2, ["关于项目", "赞赏支持", "参考项目"])
@@ -1956,7 +2040,7 @@ makeTrayMenu() {
     A_TrayMenu.Add()
     A_TrayMenu.Add("退出", fn_exit)
     fn_exit(*) {
-        fn_contorl_JetBrains(0)
+        fn_control_JetBrains(0)
         ExitApp()
     }
     isColor(v) {
@@ -1979,9 +2063,16 @@ makeTrayMenu() {
 /**
  * @param runOrStop 1: Run; 0:Stop
  */
-fn_contorl_JetBrains(runOrStop) {
+fn_control_JetBrains(runOrStop) {
     if (runOrStop) {
-        Run('C:\Windows\System32\schtasks.exe /run /tn "abgox.InputTip.JAB.JetBrains"', , "Hide")
+        if (A_IsAdmin) {
+            try {
+                RunWait('powershell -NoProfile -Command $action = New-ScheduledTaskAction -Execute "`'\"' A_ScriptDir '\InputTip.JAB.JetBrains.exe\"`'";$principal = New-ScheduledTaskPrincipal -UserId "' A_UserName '" -LogonType ServiceAccount -RunLevel Limited;$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -DontStopOnIdleEnd -ExecutionTimeLimit 10 -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1);$task = New-ScheduledTask -Action $action -Principal $principal -Settings $settings;Register-ScheduledTask -TaskName "abgox.InputTip.JAB.JetBrains" -InputObject $task -Force', , "Hide")
+            }
+            Run('C:\Windows\System32\schtasks.exe /run /tn "abgox.InputTip.JAB.JetBrains"', , "Hide")
+        } else {
+            Run(A_ScriptDir "\InputTip.JAB.JetBrains.exe", , "Hide")
+        }
     } else {
         Run('powershell -NoProfile -Command Stop-Process -Name InputTip.JAB.JetBrains -Force', , "Hide")
     }
@@ -1989,7 +2080,7 @@ fn_contorl_JetBrains(runOrStop) {
 
 fn_restart(flag := 0, *) {
     if (flag || enableJetBrainsSupport) {
-        fn_contorl_JetBrains(0)
+        fn_control_JetBrains(0)
     }
     Run(A_ScriptFullPath)
 }
@@ -2044,7 +2135,7 @@ GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
         DllCall("SetThreadDpiAwarenessContext", "ptr", -2, "ptr")
     }
     hwnd := getHwnd()
-    disable_lsit := ":StartMenuExperienceHost.exe:wetype_update.exe:AnLink.exe:wps.exe:PotPlayer.exe:PotPlayer64.exe:PotPlayerMini.exe:PotPlayerMini64.exe:HBuilderX.exe:ShareX.exe:clipdiary-portable.exe:"
+    disable_list := ":StartMenuExperienceHost.exe:wetype_update.exe:AnLink.exe:wps.exe:PotPlayer.exe:PotPlayer64.exe:PotPlayerMini.exe:PotPlayerMini64.exe:HBuilderX.exe:ShareX.exe:clipdiary-portable.exe:"
     Wpf_list := ":powershell_ise.exe:"
     UIA_list := ":WINWORD.EXE:WindowsTerminal.exe:wt.exe:OneCommander.exe:YoudaoDict.exe:Mempad.exe:Taskmgr.exe:"
     ; MSAA 可能有符号残留
@@ -2054,40 +2145,36 @@ GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
     ; 需要调用有兼容性问题的 dll 来更新光标位置的应用列表
     Hook_list_with_dll := ":WeChat.exe:"
 
-    if (InStr(disable_lsit, ":" exe_name ":")) {
+    if (InStr(disable_list, ":" exe_name ":")) {
         return 0
     }
     else if (InStr(UIA_list, ":" exe_name ":")) {
-        if (getCaretPosFromUIA()) {
-            return 1
-        }
+        return getCaretPosFromUIA()
     }
     else if (InStr(MSAA_list, ":" exe_name ":")) {
-        if (getCaretPosFromMSAA()) {
-            return 1
-        }
+        return getCaretPosFromMSAA()
     }
     else if (InStr(Gui_UIA_list, ":" exe_name ":")) {
         if (getCaretPosFromGui(&hwnd := 0)) {
             return 1
         }
-        if (getCaretPosFromUIA()) {
-            return 1
-        }
+        return getCaretPosFromUIA()
     }
     else if (InStr(Hook_list_with_dll, ":" exe_name ":")) {
-        if (getCaretPosFromHook(1)) {
-            return 1
-        }
+        return getCaretPosFromHook(1)
     }
     else if (InStr(Wpf_list, ":" exe_name ":")) {
-        if (getCaretPosFromWpfCaret()) {
-            return 1
-        }
+        return getCaretPosFromWpfCaret()
     }
     else {
         if (getCaretPosFromHook(0)) {
             return 1
+        }
+        functions := [getCaretPosFromMSAA, getCaretPosFromUIA]
+        for fn in functions {
+            if (fn()) {
+                return 1
+            }
         }
     }
     return 0
