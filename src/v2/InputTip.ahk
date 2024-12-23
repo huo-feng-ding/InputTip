@@ -1,15 +1,15 @@
 #Requires AutoHotkey v2.0
 ;@AHK2Exe-SetName InputTip
-;@AHK2Exe-SetVersion 2.26.2
+;@AHK2Exe-SetVersion 2.27.1
 ;@AHK2Exe-SetLanguage 0x0804
 ;@Ahk2Exe-SetMainIcon ..\favicon.ico
 ;@AHK2Exe-SetDescription InputTip - 一个输入法状态(中文/英文/大写锁定)提示工具
 ;@Ahk2Exe-SetCopyright Copyright (c) 2023-present abgox
 ;@Ahk2Exe-UpdateManifest 1
 ;@Ahk2Exe-AddResource InputTipCursor.zip
-;@Ahk2Exe-AddResource InputTipSymbol.zip
 ;@Ahk2Exe-AddResource InputTip.JAB.JetBrains.exe
 #SingleInstance Force
+#Warn All, Off
 Persistent
 ListLines 0
 KeyHistory 0
@@ -21,13 +21,14 @@ SetStoreCapsLockMode 0
 
 A_IconTip := "InputTip - 一个输入法状态(中文/英文/大写锁定)提示工具"
 
+#Include .\utils\verifyFile.ahk
 #Include .\utils\ini.ahk
 #Include ..\utils\IME.ahk
 #Include ..\utils\showMsg.ahk
 #Include .\utils\createGui.ahk
 #Include .\utils\checkVersion.ahk
 
-currentVersion := "2.26.2"
+currentVersion := "2.27.1"
 
 filename := SubStr(A_ScriptName, 1, StrLen(A_ScriptName) - 4)
 
@@ -61,24 +62,49 @@ if (FileExist("InputTip.ini")) {
         writeIni("JetBrains_list", "WebStorm64.exe:DataGrip64.exe:PhpStorm64.exe:PyCharm64.exe:Rider64.exe:CLion64.exe:RubyMine64.exe:GoLand64.exe:Idea64.exe:DataSpell64.exe")
     }
 } else {
+    warning := "注意：请谨慎选择，如果是误点了确定，恢复默认的鼠标样式需要以下额外步骤`n1. 点击「托盘菜单」=>「更改配置」`n2. 修改其中「1. 要不要修改鼠标样式」的值`n3. 「系统设置」=>「其他鼠标设置」=> 先更改为另一个鼠标样式方案，然后再改回默认方案"
     confirmGui := Gui("AlwaysOnTop OwnDialogs")
     confirmGui.SetFont("s12", "微软雅黑")
-    confirmGui.AddText(, A_ScriptName " 会根据不同的输入法状态(中英文/大写锁定)修改鼠标样式`n(更多信息，请点击托盘菜单中的 「关于」，前往官网或项目中查看)")
+    confirmGui.AddText("cRed", warning)
     confirmGui.Show("Hide")
     confirmGui.GetPos(, , &Gui_width)
     confirmGui.Destroy()
 
     confirmGui := Gui("AlwaysOnTop OwnDialogs")
     confirmGui.SetFont("s12", "微软雅黑")
-    confirmGui.AddText(, A_ScriptName " 会根据不同的输入法状态(中英文/大写锁定)修改鼠标样式`n(更多信息，请点击托盘菜单中的 「关于」，前往官网或项目中查看)")
-    confirmGui.AddText(, "您是否希望 " A_ScriptName " 修改鼠标样式?")
-    confirmGui.AddButton("w" Gui_width, "确认修改").OnEvent("Click", yes)
+    confirmGui.AddText(, "你是否希望 " A_ScriptName " 修改鼠标样式?")
+    confirmGui.AddText(, "当确定修改后，" A_ScriptName)
+    confirmGui.AddText("yp cRed", "会根据不同的输入法状态(中英文/大写锁定)修改鼠标样式")
+    confirmGui.AddText("xs", "(更多信息，请点击托盘菜单中的 「关于」，前往官网或项目中查看)")
+    confirmGui.AddText("cRed", warning)
+    confirmGui.AddButton("xs cRed w" Gui_width, "【是】对，我要修改").OnEvent("Click", yes)
     yes(*) {
-        writeIni("changeCursor", 1)
-        isContinue := 1
-        Run(A_ScriptFullPath)
+        cGui := Gui("AlwaysOnTop OwnDialogs")
+        cGui.SetFont("s12", "微软雅黑")
+        cGui.AddText("cRed", warning)
+        cGui.Show("Hide")
+        cGui.GetPos(, , &Gui_width)
+        cGui.Destroy()
+
+        cGui := Gui("AlwaysOnTop OwnDialogs")
+        cGui.SetFont("s12", "微软雅黑")
+        cGui.AddText(, "你真的确定要修改鼠标样式吗？")
+        cGui.AddText("cRed", warning)
+        cGui.AddButton("xs cRed w" Gui_width, "【是】对，我很确定").OnEvent("Click", yes)
+        yes(*) {
+            writeIni("changeCursor", 1)
+            isContinue := 1
+            Run(A_ScriptFullPath)
+        }
+        cGui.AddButton("w" Gui_width, "【否】不，我点错了").OnEvent("Click", no)
+        no(*) {
+            writeIni("changeCursor", 0)
+            isContinue := 1
+            Run(A_ScriptFullPath)
+        }
+        cGui.Show()
     }
-    confirmGui.AddButton("w" Gui_width, "不要修改").OnEvent("Click", no)
+    confirmGui.AddButton("w" Gui_width, "【否】不，保留默认样式").OnEvent("Click", no)
     no(*) {
         writeIni("changeCursor", 0)
         isContinue := 1
@@ -116,7 +142,7 @@ if (!ignoreUpdate) {
                     try {
                         Download("https://inputtip.pages.dev/releases/" whichVersion "/InputTip.exe", A_AppData "\abgox-InputTip.exe")
                         try {
-                            RunWait('powershell -NoProfile -Command Stop-Process -Name InputTip.JAB.JetBrains -Force', , "Hide")
+                            RunWait('taskkill /f /t /im InputTip.JAB.JetBrains.exe', , "Hide")
                             FileDelete("InputTip.JAB.JetBrains.exe")
                         }
                         Run("powershell -NoProfile -Command Start-Sleep -Seconds 3;Move-Item -Force '" A_AppData "\abgox-InputTip.exe' '" A_ScriptDir "\" A_ScriptName "';Start-Process '" A_ScriptDir "\" A_ScriptName "'", , "Hide")
@@ -154,7 +180,14 @@ if (!ignoreUpdate) {
             fn(x, y, w, h) {
                 g := Gui("AlwaysOnTop OwnDialogs")
                 g.SetFont("s12", "微软雅黑")
-                g.AddText(, "- 您正在通过项目源代码启动 InputTip`n- 当前 InputTip 有了新版本 v" currentVersion " > v" newVersion "`n- 请自行使用 git pull 获取最新的代码更改")
+                g.AddText(, "- 你正在通过项目源代码启动 InputTip")
+                g.AddText(, "- 当前 InputTip 有了新版本")
+                g.AddText("yp cRed","v" currentVersion)
+                g.AddText("yp ",">")
+                g.AddText("yp cRed","v" newVersion)
+                g.AddText("xs", "- 请自行使用")
+                g.AddText("yp cRed", "git pull")
+                g.AddText("yp", "获取最新的代码更改")
                 g.AddLink("xs", 'Github: <a href="https://github.com/abgox/InputTip#兼容情况">https://github.com/abgox/InputTip</a>`nGitee: <a href="https://gitee.com/abgox/InputTip#兼容情况">https://gitee.com/abgox/InputTip</a>')
                 g.AddButton("w" w, "确定").OnEvent("Click", fn_exit)
                 fn_exit(*) {
@@ -185,6 +218,9 @@ enableJetBrainsSupport := readIni("enableJetBrainsSupport", 0)
 JetBrains_list := ":" readIni("JetBrains_list", "") ":"
 ; 是否改变鼠标样式
 changeCursor := readIni("changeCursor", 0)
+CN_cursor := readIni("CN_cursor", "InputTipCursor\default\CN")
+EN_cursor := readIni("EN_cursor", "InputTipCursor\default\EN")
+Caps_cursor := readIni("Caps_cursor", "InputTipCursor\default\Caps")
 /*
 符号类型
     1: 图片符号
@@ -199,44 +235,26 @@ EN_color := StrReplace(readIni("EN_color", "blue"), '#', '')
 Caps_color := StrReplace(readIni("Caps_color", "green"), '#', '')
 transparent := readIni('transparent', 222)
 offset_x := readIni('offset_x', 10)
-offset_y := readIni('offset_y', -10)
-symbol_width := readIni('symbol_width', 7)
-symbol_height := readIni('symbol_height', 7)
-pic_offset_x := readIni('pic_offset_x', 5)
-pic_offset_y := readIni('pic_offset_y', -20)
+offset_y := readIni('offset_y', -15)
+symbol_width := readIni('symbol_width', 6)
+symbol_height := readIni('symbol_height', 6)
+
+CN_pic := readIni("CN_pic", "InputTipSymbol\default\CN.png")
+EN_pic := readIni("EN_pic", "InputTipSymbol\default\EN.png")
+Caps_pic := readIni("Caps_pic", "InputTipSymbol\default\Caps.png")
+pic_offset_x := readIni('pic_offset_x', -22)
+pic_offset_y := readIni('pic_offset_y', -40)
 pic_symbol_width := readIni('pic_symbol_width', 9)
 pic_symbol_height := readIni('pic_symbol_height', 9)
 ; 应用列表: 需要隐藏符号
-app_hide_state := readIni('app_hide_state', '')
-if (InStr(app_hide_state, "exe,")) {
-    app_hide_state := StrReplace(app_hide_state, ",", ":")
-    writeIni('app_hide_state', app_hide_state)
-}
-app_hide_state := ":" app_hide_state ":"
+app_hide_state := ":" readIni('app_hide_state', '') ":"
 
 ; 应用列表: 自动切换到中文
-app_CN := readIni('app_CN', '')
-if (InStr(app_CN, "exe,")) {
-    app_CN := StrReplace(app_CN, ",", ":")
-    writeIni('app_CN', app_CN)
-}
-app_CN := ":" app_CN ":"
-
+app_CN := ":" readIni('app_CN', '') ":"
 ; 应用列表: 自动切换到英文
-app_EN := readIni('app_EN', '')
-if (InStr(app_EN, "exe,")) {
-    app_EN := StrReplace(app_EN, ",", ":")
-    writeIni('app_EN', app_EN)
-}
-app_EN := ":" app_EN ":"
-
+app_EN := ":" readIni('app_EN', '') ":"
 ; 应用列表: 自动切换到大写锁定
-app_Caps := readIni('app_Caps', '')
-if (InStr(app_Caps, "exe,")) {
-    app_Caps := StrReplace(app_Caps, ",", ":")
-    writeIni('app_Caps', app_Caps)
-}
-app_Caps := ":" app_Caps ":"
+app_Caps := ":" readIni('app_Caps', '') ":"
 
 ; 中文快捷键
 hotkey_CN := readIni('hotkey_CN', '')
@@ -408,7 +426,7 @@ errAndExit() {
 
 cursor_temp_zip := A_Temp "\abgox-InputTipCursor-temp.zip"
 cursor_temp_dir := A_Temp "\abgox-InputTipCursor-temp"
-if (!DirExist("InputTipCursor")) {
+if (!DirExist("InputTipCursor") || !DirExist("InputTipCursor\default")) {
     FileInstall("InputTipCursor.zip", cursor_temp_zip, 1)
     waitFileInstall(cursor_temp_zip)
     try {
@@ -419,38 +437,19 @@ if (!DirExist("InputTipCursor")) {
     try {
         FileDelete(cursor_temp_zip)
     }
-} else {
-    noList := [], dirList := ["CN", "EN", "Caps", "default"]
-    for dir in dirList {
-        if (!DirExist("InputTipCursor\" dir)) {
-            noList.push(dir)
-        }
-    }
-    if (noList.length > 0) {
-        FileInstall("InputTipCursor.zip", cursor_temp_zip, 1)
-        waitFileInstall(cursor_temp_zip)
-        try {
-            RunWait("powershell -NoProfile -Command Expand-Archive -Path '" cursor_temp_zip "' -DestinationPath '" cursor_temp_dir "'", , "Hide")
-        } catch {
-            errAndExit()
-        }
-        for dir in noList {
-            dirCopy(cursor_temp_dir "\InputTipCursor\" dir, "InputTipCursor\" dir)
-        }
-        try {
-            DirDelete(cursor_temp_dir, 1)
-        }
-        try {
-            FileDelete(cursor_temp_zip)
-        }
-    }
 }
-for p in ["EN", "CN", "Caps"] {
-    Loop Files, "InputTipCursor\" p "\*.*" {
+cursor_dir := {
+    EN: EN_cursor,
+    CN: CN_cursor,
+    Caps: Caps_cursor
+}
+
+for key in cursor_dir.OwnProps() {
+    Loop Files cursor_dir.%key% "\*.*" {
         n := StrUpper(SubStr(A_LoopFileName, 1, StrLen(A_LoopFileName) - 4))
         for v in info {
             if (v.type = n) {
-                v.%p% := A_LoopFileFullPath
+                v.%key% := A_LoopFileFullPath
             }
         }
     }
@@ -458,54 +457,6 @@ for p in ["EN", "CN", "Caps"] {
 for v in info {
     try {
         v.origin := replaceEnvVariables(RegRead("HKEY_CURRENT_USER\Control Panel\Cursors", curMap.%v.type%))
-    }
-    if (v.EN = "" || v.CN = "" || v.Caps = "") {
-        v.EN := v.CN := v.Caps := v.origin
-    }
-}
-showPicList := ":"
-fileList := ["CN", "EN", "Caps"]
-
-symbol_temp_zip := A_Temp "\abgox-InputTipSymbol-temp.zip"
-symbol_temp_dir := A_Temp "\abgox-InputTipSymbol-temp"
-if (!DirExist("InputTipSymbol")) {
-    FileInstall("InputTipSymbol.zip", symbol_temp_zip, 1)
-    waitFileInstall(symbol_temp_zip)
-    try {
-        RunWait("powershell -NoProfile -Command Expand-Archive -Path '" symbol_temp_zip "' -DestinationPath '" A_ScriptDir "'", , "Hide")
-    } catch {
-        errAndExit()
-    }
-    try {
-        FileDelete(symbol_temp_zip)
-    }
-} else {
-    noList := []
-    for f in fileList {
-        if (!FileExist("InputTipSymbol\default\" f ".png")) {
-            noList.push(f)
-        }
-    }
-    if (noList.length > 0 || !FileExist("InputTipSymbol\default\offer.png")) {
-        FileInstall("InputTipSymbol.zip", symbol_temp_zip, 1)
-        waitFileInstall(symbol_temp_zip)
-        try {
-            RunWait("powershell -NoProfile -Command Expand-Archive -Path '" symbol_temp_zip "' -DestinationPath '" symbol_temp_dir "'", , "Hide")
-        } catch {
-            errAndExit()
-        }
-        dirCopy(symbol_temp_dir "\InputTipSymbol\default", "InputTipSymbol\default", 1)
-        try {
-            DirDelete(symbol_temp_dir, 1)
-        }
-        try {
-            FileDelete(symbol_temp_zip)
-        }
-    }
-}
-for f in fileList {
-    if (FileExist("InputTipSymbol\" f ".png")) {
-        showPicList .= f ":"
     }
 }
 
@@ -569,7 +520,6 @@ if (changeCursor) {
                 Sleep(delay)
                 continue
             }
-            is_hide_state := 0
             if (exe_name != lastWindow) {
                 needHide := 0
                 SetTimer(timer, HideSymbolDelay)
@@ -699,7 +649,9 @@ if (changeCursor) {
     }
     show(type) {
         for v in info {
-            DllCall("SetSystemCursor", "Ptr", DllCall("LoadCursorFromFile", "Str", v.%type%, "Ptr"), "Int", v.value)
+            if (v.%type%) {
+                DllCall("SetSystemCursor", "Ptr", DllCall("LoadCursorFromFile", "Str", v.%type%, "Ptr"), "Int", v.value)
+            }
         }
     }
 } else {
@@ -713,7 +665,6 @@ if (changeCursor) {
                 Sleep(delay)
                 continue
             }
-            is_hide_state := 0
             if (exe_name != lastWindow) {
                 needHide := 0
                 SetTimer(timer2, HideSymbolDelay)
@@ -801,9 +752,9 @@ TipShow(type) {
     switch symbolType {
         case 1:
         {
-            if (InStr(showPicList, ":" type ":")) {
+            if (%type "_pic"%) {
                 try {
-                    TipGuiPic.Value := "InputTipSymbol/" type ".png"
+                    TipGuiPic.Value := %type "_pic"%
                     try {
                         TipGui.Show("NA x" left + pic_offset_x "y" top + pic_offset_y)
                     }
@@ -937,8 +888,8 @@ makeTrayMenu() {
                 modeInfo := [
                     "1.「模式1」和「模式2」都是通用的输入法模式`n2. 和「模式2」相比，「模式1」兼容的输入法和应用窗口少一点，但识别输入法状态更稳定一点",
                     "1.「模式1」和「模式2」都是通用的输入法模式`n2. 和「模式1」相比，「模式2」兼容的输入法和应用窗口更多，但有极小概率出现状态识别错误`n3. 如果在某个应用窗口中出现识别错误，请尝试重启这个应用窗口",
-                    "1.「模式3」: 主要用于讯飞输入法`n2. 如果您使用的输入法其他模式都无法识别，您才应该尝试「模式3」",
-                    "1.「模式4」: 主要用于手心输入法`n2. 如果您使用的输入法其他模式都无法识别，您才应该尝试「模式4」"
+                    "1.「模式3」: 主要用于讯飞输入法`n2. 如果你使用的输入法其他模式都无法识别，你才应该尝试「模式3」",
+                    "1.「模式4」: 主要用于手心输入法`n2. 如果你使用的输入法其他模式都无法识别，你才应该尝试「模式4」"
                 ]
 
                 g := Gui("AlwaysOnTop +OwnDialogs", A_ScriptName " - 模式切换")
@@ -971,7 +922,7 @@ makeTrayMenu() {
     fn_hide_app(*) {
         fn_common({
             config: "app_hide_state",
-            text: "什么是「符号显示黑名单」？`n- 如果应用在「符号显示黑名单」中，当处于此应用窗口中时，InputTip 不会显示符号`n  - 符号: 图片符号、方块符号、文本符号`n- 如果部分应用出现了一些奇怪的bug，您可以临时将此应用添加到「符号显示黑名单」中",
+            text: "什么是「符号显示黑名单」？`n- 如果应用在「符号显示黑名单」中，当处于此应用窗口中时，InputTip 不会显示符号`n  - 符号: 图片符号、方块符号、文本符号`n- 如果部分应用出现了一些奇怪的bug，你可以临时将此应用添加到「符号显示黑名单」中",
             btn1: "添加应用到「符号显示黑名单」中",
             btn1_text1: "双击应用程序，将其添加到「符号显示黑名单」中`n- 添加后，当处于此应用窗口中时，InputTip 不再显示符号`n- 此菜单会循环触发，除非点击右上角的 x 退出，退出后所有的修改才生效",
             btn1_text2: "以下是当前系统正在运行的应用程序列表",
@@ -1016,8 +967,8 @@ makeTrayMenu() {
         tab := configGui.AddTab3(, ["显示形式", "鼠标样式", "图片符号", "方块符号", "文本符号", "配色网站"])
         tab.UseTab(1)
 
-        configGui.AddText("Section", "在更改配置前，您应该首先阅读一下项目的 README，相当于软件的说明书")
-        configGui.AddText("xs", "您可以点击以下相关网址中查看软件源代码、使用说明文档等详细内容：")
+        configGui.AddText("Section", "在更改配置前，你应该首先阅读一下项目的 README，相当于软件的说明书")
+        configGui.AddText("xs", "你可以点击以下相关网址中查看软件源代码、使用说明文档等详细内容：")
         configGui.AddLink("xs", '<a href="https://inputtip.pages.dev/v2/">文档官网</a>')
         configGui.AddLink("yp", '<a href="https://github.com/abgox/InputTip">Github</a>')
         configGui.AddLink("yp", '<a href="https://gitee.com/abgox/InputTip">Gitee</a>')
@@ -1025,7 +976,7 @@ makeTrayMenu() {
         configGui.AddText("xs", line)
         configGui.AddText("xs", "相关的显示设置：")
         configGui.AddText("xs", "1. 要不要修改鼠标样式: ")
-        configGui.AddDropDownList("w" Gui_width / 2 " yp AltSubmit vchangeCursor Choose" changeCursor + 1, ["不要修改鼠标样式，保持原本的鼠标样式", "需要修改鼠标样式，随输入法状态而变化"])
+        configGui.AddDropDownList("w" Gui_width / 1.5 " yp AltSubmit vchangeCursor Choose" changeCursor + 1, ["【否】不要修改鼠标样式，保持原本的鼠标样式", "【是】需要修改鼠标样式，随输入法状态而变化"])
         configGui.addText("xs", "2. 在输入光标附近显示什么类型的符号: ")
         configGui.AddDropDownList("yp AltSubmit vsymbolType Choose" symbolType + 1, ["不显示符号", "显示图片符号", "显示方块符号", "显示文本符号"])
         configGui.AddText("xs", "3. 无操作时，符号在多少毫秒后隐藏:")
@@ -1037,63 +988,62 @@ makeTrayMenu() {
         configGui.AddEdit("xs r1 Disabled", "(单位：毫秒，默认为 50 毫秒；值越小，响应越快，性能消耗越大，根据电脑性能适当调整)")
 
         tab.UseTab(2)
-        configGui.AddText(, "您可以点击以下任意网址获取设置鼠标样式文件夹的相关说明:`n(您应该先了解相关说明，然后点击下方按钮进行设置)")
-        configGui.AddLink(, '<a href="https://inputtip.pages.dev/v2/#自定义鼠标样式">https://inputtip.pages.dev/v2/#自定义鼠标样式</a>`n<a href="https://github.com/abgox/InputTip#自定义鼠标样式">https://github.com/abgox/InputTip#自定义鼠标样式</a>`n<a href="https://gitee.com/abgox/InputTip#自定义鼠标样式">https://gitee.com/abgox/InputTip#自定义鼠标样式</a>`n' line)
-        cursorDirList := [{
-            label: "中文状态鼠标样式",
-            folder: "CN",
+        configGui.AddText(, "你可以点击以下任意网址获取设置鼠标样式文件夹的相关说明:`n(你应该先了解相关说明，然后点击下方按钮进行设置)")
+        configGui.AddLink(, '<a href="https://inputtip.pages.dev/v2/#自定义鼠标样式">官网</a>   <a href="https://github.com/abgox/InputTip#自定义鼠标样式">Github</a>   <a href="https://gitee.com/abgox/InputTip#自定义鼠标样式">Gitee</a>`n' line)
+        typeList := [{
+            label: "1. 中文状态",
+            type: "CN",
         }, {
-            label: "英文状态鼠标样式",
-            folder: "EN",
+            label: "2. 英文状态",
+            type: "EN",
         }, {
-            label: "大写锁定鼠标样式",
-            folder: "Caps",
+            label: "3. 大写锁定",
+            type: "Caps",
         }]
-        for v in cursorDirList {
-            btnGui := configGui.AddButton("w" Gui_width, "设置" v.label)
-            btnGui.data := v
-            btnGui.OnEvent("Click", fn_btn)
-            fn_btn(item, *) {
-                if (!changeCursor) {
-                    MsgBox("请先在配置中将 是否更改鼠标样式 设置为 1，再进行此操作。", A_ScriptName " - 错误！", "0x10 0x1000")
-                    return
-                }
-                dir := FileSelect("D", A_ScriptDir "\InputTipCursor", "选择一个文件夹作为" item.data.label " (不能是 CN/EN/Caps 文件夹)")
-                if (!dir) {
-                    return
-                }
-                hasFile := false
-                Loop Files, dir "\*", "" {
-                    if (A_LoopFileExt = "cur" || A_LoopFileExt = "ani") {
-                        hasFile := true
-                        break
+
+        dirList := ":"
+        defaultList := ":InputTipCursor\default\Caps:InputTipCursor\default\EN:InputTipCursor\default\CN:"
+
+        loopDir(path) {
+            Loop Files path "\*", "DR" {
+                if (A_LoopFileAttrib ~= "D") {
+                    loopDir A_LoopFileShortPath
+                    if (!hasChildDir(A_LoopFileShortPath)) {
+                        if (!InStr(dirList, ":" A_LoopFileShortPath ":") && !InStr(defaultList, ":" A_LoopFileShortPath ":")) {
+                            dirList .= A_LoopFileShortPath ":"
+                        }
                     }
-                }
-                if (!hasFile) {
-                    MsgBox("您应该选择一个包含鼠标样式文件的文件夹。`n鼠标样式文件: 后缀名为 .cur 或 .ani 的文件", A_ScriptName " - 选择文件夹错误！", "0x10 0x1000")
-                    return
-                }
-                dir_name := StrSplit(dir, "\")[-1]
-                if (dir_name = "EN" || dir_name = "CN" || dir_name = "Caps") {
-                    MsgBox("不能选择 CN/EN/Caps 文件夹！", , "0x30 0x1000")
-                    return
-                }
-                try {
-                    DirDelete(A_ScriptDir "\InputTipCursor\" item.data.folder, 1)
-                    DirCopy(dir, A_ScriptDir "\InputTipCursor\" item.data.folder, 1)
-                    MsgBox("鼠标样式文件夹修改成功!")
                 }
             }
         }
-        configGui.AddButton("w" Gui_width, "下载鼠标样式包").OnEvent("Click", fn_package)
-        fn_package(*) {
-            dlGui := Gui("AlwaysOnTop OwnDialogs", "下载鼠标样式包")
+
+        loopDir("InputTipCursor")
+
+        dirList := StrSplit(SubStr(dirList, 2, StrLen(dirList) - 2), ":")
+
+        for v in StrSplit(SubStr(defaultList, 2, StrLen(defaultList) - 2), ":") {
+            dirList.InsertAt(1, v)
+        }
+
+        configGui.AddText("Section", "选择或输入不同状态下的鼠标样式文件夹目录路径: ")
+        for v in typeList {
+            configGui.AddText("xs", v.label "鼠标样式: ")
+            ctrl := configGui.AddComboBox("xs r10 w" Gui_width " v" v.type "_cursor", dirList)
+            try {
+                ctrl.Text := cursor_dir.%v.type%
+            } catch {
+                ctrl.Text := ""
+            }
+        }
+        configGui.AddButton("xs w" Gui_width, "下载鼠标样式扩展包").OnEvent("Click", fn_cursor_package)
+        fn_cursor_package(*) {
+            dlGui := Gui("AlwaysOnTop OwnDialogs", "下载鼠标样式扩展包")
             dlGui.SetFont("s12", "微软雅黑")
-            dlGui.AddText("Center h30", "从以下任意可用地址中下载鼠标样式包:")
-            dlGui.AddLink("xs", '<a href="https://inputtip.pages.dev/releases/v2/cursorStyle.zip">https://inputtip.pages.dev/releases/v2/cursorStyle.zip</a>')
-            dlGui.AddLink("xs", '<a href="https://github.com/abgox/InputTip/raw/main/src/v2/InputTipCursor.zip">https://github.com/abgox/InputTip/raw/main/src/v2/InputTipCursor.zip</a>')
-            dlGui.AddLink("xs", '<a href="https://gitee.com/abgox/InputTip/raw/main/src/v2/InputTipCursor.zip">https://gitee.com/abgox/InputTip/raw/main/src/v2/InputTipCursor.zip</a>')
-            dlGui.AddText("", "其中的鼠标样式已经完成适配，可以直接解压到 InputTipCursor 目录中使用")
+            dlGui.AddText("Center h30", "从以下任意可用地址中下载鼠标样式扩展包:")
+            dlGui.AddLink("xs", '<a href="https://inputtip.pages.dev/download/extra">https://inputtip.pages.dev/download/extra</a>')
+            dlGui.AddLink("xs", '<a href="https://github.com/abgox/InputTip/releases/tag/extra">https://github.com/abgox/InputTip/releases/tag/extra</a>')
+            dlGui.AddLink("xs", '<a href="https://gitee.com/abgox/InputTip/releases/tag/extra">https://gitee.com/abgox/InputTip/releases/tag/extra</a>')
+            dlGui.AddText(, "其中的鼠标样式已经完成适配，解压到 InputTipCursor 目录中即可使用")
             dlGui.OnEvent("Escape", close)
             dlGui.Show()
             close(*) {
@@ -1101,29 +1051,74 @@ makeTrayMenu() {
             }
         }
         tab.UseTab(3)
-        configGui.AddText("Section", "- 图片符号通过加载图片实现，您可以通过替换图片来自定义任何符号，不一定是圆点符号`n    - 您可以用自己喜欢的符号图片、或者自己制作符号图片来替换`n    - 唯一限制: 图片必须是 .png 类型的图片`n- 如果在特定状态下，您不想显示图片符号，把 InputTipSymbol 目录下对应的图片删除即可`n    - 中文状态: CN.png`n    - 英文状态: EN.png`n    - 大写锁定: Caps.png`n- 如果后悔了，从 InputTipSymbol 目录下的 default 目录中把对应的默认图片复制回来即可`n" line)
+        configGui.AddLink("Section", '点击下方链接查看图片符号的详情说明: <a href="https://inputtip.pages.dev/v2/#图片符号">官网</a>   <a href="https://github.com/abgox/InputTip#图片符号">Github</a>   <a href="https://gitee.com/abgox/InputTip#图片符号">Gitee</a>' "`n" line)
 
         symbolPicConfig := [{
             config: "pic_offset_x",
-            options: "",
+            options: "xs",
             tip: "图片符号的水平偏移量"
         }, {
-            config: "pic_offset_y",
-            options: "",
-            tip: "图片符号的垂直偏移量"
-        }, {
             config: "pic_symbol_width",
-            options: "",
+            options: "yp",
             tip: "图片符号的宽度"
         }, {
+            config: "pic_offset_y",
+            options: "xs",
+            tip: "图片符号的垂直偏移量"
+        }, {
             config: "pic_symbol_height",
-            options: "",
+            options: "yp",
             tip: "图片符号的高度"
         }]
         for v in symbolPicConfig {
-            configGui.AddText("xs", v.tip ": ")
-            configGui.AddEdit("v" v.config " yp w150 " v.options, %v.config%)
+            configGui.AddText(v.options, v.tip ": ")
+            configGui.AddEdit("v" v.config " yp w150 ", %v.config%)
         }
+
+        picList := ":"
+        defaultList := ":InputTipSymbol\default\Caps.png:InputTipSymbol\default\EN.png:InputTipSymbol\default\CN.png:"
+        Loop Files "InputTipSymbol\*", "R" {
+            if (A_LoopFileExt = "png" && A_LoopFileShortPath != "InputTipSymbol\default\offer.png") {
+                if (!InStr(picList, ":" A_LoopFileShortPath ":") && !InStr(defaultList, ":" A_LoopFileShortPath ":")) {
+                    picList .= A_LoopFileShortPath ":"
+                }
+            }
+        }
+
+        picList := StrSplit(SubStr(picList, 2, StrLen(picList) - 2), ":")
+
+        for v in StrSplit(SubStr(defaultList, 2, StrLen(defaultList) - 2), ":") {
+            picList.InsertAt(1, v)
+        }
+        picList.InsertAt(1, '')
+
+        configGui.AddText("xs Section", "选择或输入不同状态下的图片符号的图片路径(只能是 .png 图片或留空): ")
+        for v in typeList {
+            configGui.AddText("xs", v.label "图片符号: ")
+            ctrl := configGui.AddComboBox("xs r10 w" Gui_width " v" v.type "_pic", picList)
+            try {
+                ctrl.Text := readIni(v.type "_pic", "")
+            } catch {
+                ctrl.Text := ""
+            }
+        }
+
+        configGui.AddButton("xs w" Gui_width, "下载图片符号扩展包").OnEvent("Click", fn_pic_package)
+        fn_pic_package(*) {
+            dlGui := Gui("AlwaysOnTop OwnDialogs", "下载图片符号扩展包")
+            dlGui.SetFont("s12", "微软雅黑")
+            dlGui.AddText("Center h30", "从以下任意可用地址中下载图片符号扩展包:")
+            dlGui.AddLink("xs", '<a href="https://inputtip.pages.dev/download/extra">https://inputtip.pages.dev/download/extra</a>')
+            dlGui.AddLink("xs", '<a href="https://github.com/abgox/InputTip/releases/tag/extra">https://github.com/abgox/InputTip/releases/tag/extra</a>')
+            dlGui.AddLink("xs", '<a href="https://gitee.com/abgox/InputTip/releases/tag/extra">https://gitee.com/abgox/InputTip/releases/tag/extra</a>')
+            dlGui.AddText(, "将其中的图片解压到 InputTipSymbol 目录中即可使用")
+            dlGui.OnEvent("Escape", close)
+            dlGui.Show()
+            close(*) {
+                dlGui.Destroy()
+            }
+        }
+
         tab.UseTab(4)
         symbolBlockColorConfig := [{
             config: "CN_color",
@@ -1186,42 +1181,50 @@ makeTrayMenu() {
 
             customGui := Gui("AlwaysOnTop OwnDialogs", A_ScriptName " - 自定义方块符号样式边框")
             customGui.SetFont("s12", "微软雅黑")
-            customGui.AddText("", "注意: 如果使用了文本字符，自定义边框样式不会生效`n-----------------------------------------------------------------------------------")
+            customGui.AddText("", "注意: 如果使用了文本字符，自定义边框样式不会生效`n         此边框样式的渲染效果很一般，更推荐直接自定义图片符号去实现`n-----------------------------------------------------------------------------------")
             configList := [{
                 config: "border_margin_left",
+                opts: "xs",
                 options: "Number",
                 tip: "左边的边框宽度"
             }, {
                 config: "border_margin_right",
+                opts: "yp",
                 options: "Number",
                 tip: "右边的边框宽度"
             }, {
                 config: "border_margin_top",
+                opts: "xs",
                 options: "Number",
                 tip: "上边的边框宽度"
             }, {
                 config: "border_margin_bottom",
+                opts: "yp",
                 options: "Number",
                 tip: "下边的边框宽度"
             }, {
                 config: "border_color_CN",
+                opts: "xs",
                 options: "",
                 tip: "中文状态时的边框颜色"
             }, {
                 config: "border_color_EN",
+                opts: "xs",
                 options: "",
                 tip: "英文状态时的边框颜色"
             }, {
                 config: "border_color_Caps",
+                opts: "xs",
                 options: "",
                 tip: "大写状态时的边框颜色"
             }, {
                 config: "border_transparent",
+                opts: "xs",
                 options: "Number",
                 tip: "边框的透明度"
             }]
             for v in configList {
-                customGui.AddText("xs", v.tip ": ")
+                customGui.AddText(v.opts, v.tip ": ")
                 customGui.AddEdit("v" v.config " yp w150 " v.options, %v.config%)
             }
             customGui.AddButton("xs w" Gui_width, "确认").OnEvent("Click", yes2)
@@ -1348,25 +1351,57 @@ makeTrayMenu() {
                     for v in info {
                         DllCall("SetSystemCursor", "Ptr", DllCall("LoadCursorFromFile", "Str", v.origin, "Ptr"), "Int", v.value)
                     }
-                    MsgBox("尝试恢复默认鼠标样式。`n如果没有完全恢复，请重启电脑。")
+                    isContinue := 0
+                    warning := "可能无法完全恢复，你需要进行以下额外步骤:`n1. 进入「系统设置」=>「蓝牙和其他设备」=> 「鼠标」=>「其他鼠标设置」`n2. 先更改为另一个鼠标样式方案，然后再改回默认方案"
+                    confirmGui := Gui("AlwaysOnTop OwnDialogs")
+                    confirmGui.SetFont("s12", "微软雅黑")
+                    confirmGui.AddText("cRed", warning)
+                    confirmGui.Show("Hide")
+                    confirmGui.GetPos(, , &Gui_width)
+                    confirmGui.Destroy()
+
+                    confirmGui := Gui("AlwaysOnTop OwnDialogs")
+                    confirmGui.SetFont("s12", "微软雅黑")
+                    confirmGui.AddText(, "尝试恢复默认鼠标样式。")
+                    confirmGui.AddText("cRed", warning)
+                    confirmGui.AddButton("w" Gui_width, "我知道了").OnEvent("Click", yes)
+                    yes(*) {
+                        isContinue := true
+                        confirmGui.Destroy()
+                    }
+                    confirmGui.Show()
+                    while (!isContinue) {
+                        Sleep(500)
+                    }
                 }
+                ; 检查配置项的值不为空，如果为空，就保持原样
+                verify(config, value) {
+                    if (value != '') {
+                        writeIni(config, value)
+                    }
+                }
+
                 for item in symbolPicConfig {
-                    writeIni(item.config, configGui.Submit().%item.config%)
+                    verify(item.config, configGui.Submit().%item.config%)
                 }
                 for item in symbolBlockColorConfig {
-                    writeIni(item.config, configGui.Submit().%item.config%)
+                    verify(item.config, configGui.Submit().%item.config%)
                 }
                 for item in symbolBlockConfig {
-                    writeIni(item.config, configGui.Submit().%item.config%)
+                    verify(item.config, configGui.Submit().%item.config%)
                 }
                 for item in symbolCharConfig {
-                    writeIni(item.config, configGui.Submit().%item.config%)
+                    verify(item.config, configGui.Submit().%item.config%)
                 }
-                writeIni("delay", configGui.Submit().delay)
-                writeIni("HideSymbolDelay", configGui.Submit().HideSymbolDelay)
-                writeIni("symbolType", configGui.Submit().symbolType - 1)
-                writeIni("changeCursor", configGui.Submit().changeCursor - 1)
-                writeIni("border_type", configGui.Submit().border_type - 1)
+                verify("delay", configGui.Submit().delay)
+                verify("HideSymbolDelay", configGui.Submit().HideSymbolDelay)
+                verify("symbolType", configGui.Submit().symbolType - 1)
+                verify("changeCursor", configGui.Submit().changeCursor - 1)
+                verify("border_type", configGui.Submit().border_type - 1)
+                for v in typeList {
+                    verify(v.type "_cursor", configGui.Submit().%v.type "_cursor"%)
+                    verify(v.type "_pic", configGui.Submit().%v.type "_pic"%)
+                }
                 fn_restart()
             }
         }
@@ -1566,7 +1601,7 @@ makeTrayMenu() {
                     }
                 }
                 DetectHiddenWindows 1
-                addGui.AddButton("xs w" Gui_width, "没有找到需要添加的进程？您可以点击此按钮手动添加进程").OnEvent("Click", fn_add_by_hand)
+                addGui.AddButton("xs w" Gui_width, "没有找到需要添加的进程？你可以点击此按钮手动添加进程").OnEvent("Click", fn_add_by_hand)
                 fn_add_by_hand(*) {
                     g := Gui("AlwaysOnTop OwnDialogs")
                     g.SetFont("s12", "微软雅黑")
@@ -1688,7 +1723,7 @@ makeTrayMenu() {
                 } else {
                     rmGui.SetFont("s14", "微软雅黑")
                     rmGui.AddText(, "当前没有可以移除的应用")
-                    rmgui.Show("Hide")
+                    rmGui.Show("Hide")
                     rmGui.GetPos(, , &Gui_width)
                     rmGui.Destroy()
 
@@ -1844,7 +1879,7 @@ makeTrayMenu() {
     fn_offset(*) {
         offsetGui := Gui("AlwaysOnTop OwnDialogs")
         offsetGui.SetFont("s12", "微软雅黑")
-        offsetGui.AddText("Section", "- 由于 JetBrains 系列 IDE，在副屏上会存在极大的坐标偏差`n- 需要自己手动的通过调整对应屏幕的偏移量，使其正确显示`n- 注意: 您需要先开启 Java Access Bridge，具体操作步骤，请查看以下网址:")
+        offsetGui.AddText("Section", "- 由于 JetBrains 系列 IDE，在副屏上会存在极大的坐标偏差`n- 需要自己手动的通过调整对应屏幕的偏移量，使其正确显示`n- 注意: 你需要先开启 Java Access Bridge，具体操作步骤，请查看以下网址:")
         offsetGui.AddLink(, '<a href="https://inputtip.pages.dev/FAQ/#如何在-jetbrains-系列-ide-中使用-inputtip">https://inputtip.pages.dev/FAQ/#如何在-jetbrains-系列-ide-中使用-inputtip</a>')
         offsetGui.Show("Hide")
         offsetGui.GetPos(, , &Gui_width)
@@ -1854,18 +1889,18 @@ makeTrayMenu() {
         offsetGui.SetFont("s12", "微软雅黑")
         tab := offsetGui.AddTab3("", ["JetBrains IDE"])
         tab.UseTab(1)
-        offsetGui.AddText("Section", "- 由于 JetBrains 系列 IDE，在副屏上会存在极大的坐标偏差`n- 需要自己通过手动调整对应屏幕的偏移量，使其正确显示`n- 您可以通过以下链接了解如何在 JetBrains 系列 IDE 中使用 InputTip :")
+        offsetGui.AddText("Section", "- 由于 JetBrains 系列 IDE，在副屏上会存在极大的坐标偏差`n- 需要自己通过手动调整对应屏幕的偏移量，使其正确显示`n- 你可以通过以下链接了解如何在 JetBrains 系列 IDE 中使用 InputTip :")
         offsetGui.AddLink(, '- <a href="https://inputtip.pages.dev/FAQ/#如何在-jetbrains-系列-ide-中使用-inputtip">https://inputtip.pages.dev/FAQ/#如何在-jetbrains-系列-ide-中使用-inputtip</a>`n- <a href="https://github.com/abgox/InputTip#如何在-jetbrains-系列-ide-中使用-inputtip">https://github.com/abgox/InputTip#如何在-jetbrains-系列-ide-中使用-inputtip</a>`n- <a href="https://gitee.com/abgox/InputTip#如何在-jetbrains-系列-ide-中使用-inputtip">https://gitee.com/abgox/InputTip#如何在-jetbrains-系列-ide-中使用-inputtip</a>')
-        btn := offsetGui.AddButton("w" Gui_width, "设置 JetBrains 系列 IDE 的副屏偏移量")
+        btn := offsetGui.AddButton("w" Gui_width, "设置 JetBrains 系列 IDE 的偏移量")
         btn.Focus()
         btn.OnEvent("Click", JetBrains_offset)
 
         JetBrains_offset(*) {
             offsetGui.Destroy()
-            JetBrainsGui := Gui("AlwaysOnTop OwnDialogs", A_ScriptName " - 设置 JetBrains 系列 IDE 的副屏偏移量")
+            JetBrainsGui := Gui("AlwaysOnTop OwnDialogs", A_ScriptName " - 设置 JetBrains 系列 IDE 的偏移量")
             JetBrainsGui.SetFont("s12", "微软雅黑")
             screenList := getScreenInfo()
-            JetBrainsGui.AddText(, "您需要通过屏幕坐标信息判断具体是哪一块屏幕`n - 假设您有两块屏幕，主屏幕在左侧，副屏幕在右侧`n - 那么副屏幕的左上角 X 坐标一定大于主屏幕的右下角 X 坐标`n - 以此判断以下屏幕哪一块是右侧的屏幕")
+            JetBrainsGui.AddText(, "你需要通过屏幕坐标信息判断具体是哪一块屏幕`n - 假设你有两块屏幕，主屏幕在左侧，副屏幕在右侧`n - 那么副屏幕的左上角 X 坐标一定大于主屏幕的右下角 X 坐标`n - 以此判断以下屏幕哪一块是右侧的屏幕")
             pages := []
             for v in screenList {
                 pages.push("屏幕 " v.num)
@@ -1911,7 +1946,7 @@ makeTrayMenu() {
                         showMsg(["配置错误!", "它应该是一个数字。"])
                         isValid := 0
                     } else {
-                        writeIni("offset_JetBrains_x_" v.num, y)
+                        writeIni("offset_JetBrains_y_" v.num, y)
                     }
                 }
                 if (isValid) {
@@ -1930,18 +1965,17 @@ makeTrayMenu() {
         if (enableJetBrainsSupport) {
             FileInstall("InputTip.JAB.JetBrains.exe", "InputTip.JAB.JetBrains.exe", 1)
             waitFileInstall("InputTip.JAB.JetBrains.exe", 0)
-
             jGui := Gui("AlwaysOnTop OwnDialogs")
             jGui.SetFont("s12", "微软雅黑")
-            jGui.AddText(, "1. 开启 Java Access Bridge`n2. 点击托盘菜单中的 「添加 JetBrains IDE 应用」，确保您使用的 JetBrains IDE 已经被添加`n3. 重启 InputTip")
+            jGui.AddText(, "1. 开启 Java Access Bridge`n2. 点击托盘菜单中的 「添加 JetBrains IDE 应用」，确保你使用的 JetBrains IDE 已经被添加`n3. 重启 InputTip")
             jGui.Show("Hide")
             jGui.GetPos(, , &Gui_width)
             jGui.Destroy()
 
             jGui := Gui("AlwaysOnTop OwnDialogs")
             jGui.SetFont("s12", "微软雅黑")
-            jGui.AddText(, "已成功启用 JetBrains IDE 支持，您还需要进行以下步骤:")
-            jGui.AddText(, "1. 开启 Java Access Bridge`n2. 点击托盘菜单中的 「添加 JetBrains IDE 应用」，确保您使用的 JetBrains IDE 已经被添加`n3. 重启 InputTip")
+            jGui.AddText(, "已成功启用 JetBrains IDE 支持，你还需要进行以下步骤:")
+            jGui.AddText(, "1. 开启 Java Access Bridge`n2. 点击托盘菜单中的 「添加 JetBrains IDE 应用」，确保你使用的 JetBrains IDE 已经被添加`n3. 重启 InputTip")
             jGui.AddText(, "具体操作步骤，请查看以下任意网址:")
             jGui.AddLink(, '<a href="https://inputtip.pages.dev/FAQ/#如何在-jetbrains-系列-ide-中使用-inputtip">https://inputtip.pages.dev/FAQ/#如何在-jetbrains-系列-ide-中使用-inputtip</a>')
             jGui.AddLink(, '<a href="https://github.com/abgox/InputTip#如何在-jetbrains-系列-ide-中使用-inputtip">https://github.com/abgox/InputTip#如何在-jetbrains-系列-ide-中使用-inputtip</a>')
@@ -1953,11 +1987,13 @@ makeTrayMenu() {
             }
             jGui.Show()
         } else {
-            RunWait('powershell -NoProfile -Command Stop-Process -Name InputTip.JAB.JetBrains -Force', , "Hide")
-            if (A_IsAdmin) {
-                Run('powershell -NoProfile -Command Unregister-ScheduledTask -TaskName "abgox.InputTip.JAB.JetBrains" -Confirm:$false', , "Hide")
-                try {
-                    FileDelete("InputTip.JAB.JetBrains.exe")
+            try {
+                RunWait('taskkill /f /t /im InputTip.JAB.JetBrains.exe', , "Hide")
+                if (A_IsAdmin) {
+                    Run('schtasks /delete /tn "abgox.InputTip.JAB.JetBrains" /f', , "Hide")
+                    try {
+                        FileDelete("InputTip.JAB.JetBrains.exe")
+                    }
                 }
             }
         }
@@ -1966,12 +2002,12 @@ makeTrayMenu() {
     fn_add_JetBrains(*) {
         fn_common({
             config: "JetBrains_list",
-            text: "当勾选「启用 JetBrains IDE 支持」后，您需要确保您使用的 JetBrains IDE 已经被添加",
+            text: "当勾选「启用 JetBrains IDE 支持」后，你需要确保你使用的 JetBrains IDE 已经被添加",
             btn1: "添加 JetBrains 系列 IDE 应用程序",
-            btn1_text1: "双击应用程序进程进行添加`n- 您只应该添加 JetBrains 系列 IDE 应用程序进程`n- 此菜单会循环触发，除非点击右上角的 x 退出，退出后所有的修改才生效",
+            btn1_text1: "双击应用程序进程进行添加`n- 你只应该添加 JetBrains 系列 IDE 应用程序进程`n- 此菜单会循环触发，除非点击右上角的 x 退出，退出后所有的修改才生效",
             btn1_text2: "以下是当前系统正在运行的应用程序列表",
             btn1_text3: "是否要添加  ",
-            btn1_text4: " ？`n注意: 如果此应用程序进程不是 JetBrains 系列 IDE 应用程序，您不应该添加它",
+            btn1_text4: " ？`n注意: 如果此应用程序进程不是 JetBrains 系列 IDE 应用程序，你不应该添加它",
             btn2: "移除 JetBrains 系列 IDE 应用程序",
             btn2_text1: "双击应用程序进程进行移除`n- 此菜单会循环触发，除非点击右上角的 x 退出，退出后所有的修改才生效",
             btn2_text2: "以下是已添加的 JetBrains 系列 IDE 应用程序列表(如果有其他应用，需立即移除)",
@@ -1993,7 +2029,7 @@ makeTrayMenu() {
         aboutGui := Gui("AlwaysOnTop OwnDialogs")
         aboutGui.SetFont("s12", "微软雅黑")
         aboutGui.AddText(, "InputTip - 一个输入法状态(中文/英文/大写锁定)提示工具")
-        aboutGui.AddText(, "如果 InputTip 对您有所帮助，`n您也可以出于善意, 向我捐款。`n非常感谢对 InputTip 的支持!`n希望 InputTip 能一直帮助您!")
+        aboutGui.AddLink(, '- 因为实现简单，就是去掉 v1 中方块符号的文字，加上不同的背景颜色')
         aboutGui.AddPicture("w365 h-1", "InputTipSymbol\default\offer.png")
         aboutGui.Show("Hide")
         aboutGui.GetPos(, , &Gui_width)
@@ -2010,23 +2046,26 @@ makeTrayMenu() {
         aboutGui.AddEdit("yp ReadOnly", 'abgox')
         aboutGui.AddText("xs", 'QQ 账号: ')
         aboutGui.AddEdit("yp ReadOnly", '1151676611')
-        aboutGui.AddText("xs", 'QQ 群聊: ')
+        aboutGui.AddText("xs", 'QQ 群聊(交流反馈): ')
         aboutGui.AddEdit("yp ReadOnly", '451860327')
         aboutGui.AddText("xs", "------------------------------------------------------------------")
         aboutGui.AddLink("xs", '1. 官网: <a href="https://inputtip.pages.dev">https://inputtip.pages.dev</a>')
         aboutGui.AddLink("xs", '2. Github: <a href="https://github.com/abgox/InputTip">https://github.com/abgox/InputTip</a>')
         aboutGui.AddLink("xs", '3. Gitee: <a href="https://gitee.com/abgox/InputTip">https://gitee.com/abgox/InputTip</a>')
         tab.UseTab(2)
-        aboutGui.AddText("Section", "如果 InputTip 对您有所帮助，您也可以出于善意, 向我捐款。`n非常感谢对 InputTip 的支持！希望 InputTip 能一直帮助您！")
+        aboutGui.AddText("Section", "如果 InputTip 对你有所帮助，你也可以出于善意, 向我捐款。`n非常感谢对 InputTip 的支持！希望 InputTip 能一直帮助你！")
         aboutGui.AddPicture("w432 h-1", "InputTipSymbol\default\offer.png")
         tab.UseTab(3)
-        aboutGui.AddText("Section", "参考并借鉴了以下项目 : ")
-        aboutGui.AddLink("xs", '<a href="https://github.com/aardio/ImTip">ImTip - aardio</a>')
-        aboutGui.AddLink("xs", '<a href="https://github.com/flyinclouds/KBLAutoSwitch">KBLAutoSwitch - flyinclouds</a>')
-        aboutGui.AddLink("xs", '<a href="https://github.com/Tebayaki/AutoHotkeyScripts">AutoHotkeyScripts - Tebayaki</a>')
-        aboutGui.AddLink("xs", '<a href="https://github.com/yakunins/language-indicator">language-indicator - yakunins</a>')
-        aboutGui.AddLink("xs", '<a href="https://github.com/Autumn-one/RedDot">RedDot - Autumn-one(木瓜太香)</a>')
-        aboutGui.AddLink("xs", '- 在输入光标处显示色块，通过颜色区分这个思路设计的早期借鉴')
+        aboutGui.AddLink("Section", '1. <a href="https://github.com/aardio/ImTip">ImTip - aardio</a>')
+        aboutGui.AddLink("xs", '2. <a href="https://github.com/flyinclouds/KBLAutoSwitch">KBLAutoSwitch - flyinclouds</a>')
+        aboutGui.AddLink("xs", '3. <a href="https://github.com/Tebayaki/AutoHotkeyScripts">AutoHotkeyScripts - Tebayaki</a>')
+        aboutGui.AddLink("xs", '4. <a href="https://github.com/Autumn-one/RedDot">RedDot - Autumn-one</a>')
+        aboutGui.AddLink("xs", '5. <a href="https://github.com/yakunins/language-indicator">language-indicator - yakunins</a>')
+        aboutGui.AddLink("xs", '- InputTip v1 是在鼠标附近显示带文字的方块符号')
+        aboutGui.AddLink("xs", '- InputTip v2 默认通过不同颜色的鼠标样式来区分')
+        aboutGui.AddLink("xs", '- 后来参照了 <a href="https://github.com/Autumn-one/RedDot">RedDot</a> 和 <a href="https://github.com/yakunins/language-indicator">language-indicator</a> 的设计')
+        aboutGui.AddLink("xs", '- 因为实现很简单，就是去掉 v1 中方块符号的文字，加上不同的背景颜色')
+
         tab.UseTab(0)
         btn := aboutGui.AddButton("Section w" Gui_width + aboutGui.MarginX * 2, "关闭")
         btn.Focus()
@@ -2060,6 +2099,12 @@ makeTrayMenu() {
     }
 }
 
+hasChildDir(path) {
+    Loop Files path "\*", "D" {
+        return A_Index
+    }
+}
+
 /**
  * @param runOrStop 1: Run; 0:Stop
  */
@@ -2069,12 +2114,12 @@ fn_control_JetBrains(runOrStop) {
             try {
                 RunWait('powershell -NoProfile -Command $action = New-ScheduledTaskAction -Execute "`'\"' A_ScriptDir '\InputTip.JAB.JetBrains.exe\"`'";$principal = New-ScheduledTaskPrincipal -UserId "' A_UserName '" -LogonType ServiceAccount -RunLevel Limited;$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -DontStopOnIdleEnd -ExecutionTimeLimit 10 -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1);$task = New-ScheduledTask -Action $action -Principal $principal -Settings $settings;Register-ScheduledTask -TaskName "abgox.InputTip.JAB.JetBrains" -InputObject $task -Force', , "Hide")
             }
-            Run('C:\Windows\System32\schtasks.exe /run /tn "abgox.InputTip.JAB.JetBrains"', , "Hide")
+            Run('schtasks /run /tn "abgox.InputTip.JAB.JetBrains"', , "Hide")
         } else {
             Run(A_ScriptDir "\InputTip.JAB.JetBrains.exe", , "Hide")
         }
     } else {
-        Run('powershell -NoProfile -Command Stop-Process -Name InputTip.JAB.JetBrains -Force', , "Hide")
+        RunWait('taskkill /f /t /im InputTip.JAB.JetBrains.exe', , "Hide")
     }
 }
 
@@ -2140,8 +2185,8 @@ GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
     UIA_list := ":WINWORD.EXE:WindowsTerminal.exe:wt.exe:OneCommander.exe:YoudaoDict.exe:Mempad.exe:Taskmgr.exe:"
     ; MSAA 可能有符号残留
     MSAA_list := ":EXCEL.EXE:DingTalk.exe:Notepad.exe:Notepad3.exe:Quicker.exe:skylark.exe:aegisub32.exe:aegisub64.exe:aegisub.exe:PandaOCR.exe:PandaOCR.Pro.exe:VStart6.exe:TIM.exe:PowerToys.PowerLauncher.exe:Foxmail.exe:"
-    ACC_list := ":explorer.exe:ApplicationFrameHost.exe:"
-    Gui_UIA_list := ":POWERPNT.EXE:Notepad++.exe:firefox.exe:devenv.exe:"
+    ; ACC_list := ":explorer.exe:ApplicationFrameHost.exe:"
+    Gui_UIA_list := ":POWERPNT.EXE:Notepad++.exe:firefox.exe:devenv.exe:WeMeetApp.exe:"
     ; 需要调用有兼容性问题的 dll 来更新光标位置的应用列表
     Hook_list_with_dll := ":WeChat.exe:"
 
@@ -2489,8 +2534,8 @@ end:
         try {
             idObject := 0xFFFFFFF8 ; OBJID_CARET
             if DllCall("oleacc\AccessibleObjectFromWindow", "ptr", WinExist("A"), "uint", idObject &= 0xFFFFFFFF
-            , "ptr", -16 + NumPut("int64", idObject == 0xFFFFFFF0 ? 0x46000000000000C0 : 0x719B3800AA000C81, NumPut("int64", idObject == 0xFFFFFFF0 ? 0x0000000000020400 : 0x11CF3C3D618736E0, IID := Buffer(16)))
-            , "ptr*", oAcc := ComValue(9, 0)) = 0 {
+                , "ptr", -16 + NumPut("int64", idObject == 0xFFFFFFF0 ? 0x46000000000000C0 : 0x719B3800AA000C81, NumPut("int64", idObject == 0xFFFFFFF0 ? 0x0000000000020400 : 0x11CF3C3D618736E0, IID := Buffer(16)))
+                , "ptr*", oAcc := ComValue(9, 0)) = 0 {
                 x := Buffer(4), y := Buffer(4), w := Buffer(4), h := Buffer(4)
                 oAcc.accLocation(ComValue(0x4003, x.ptr, 1), ComValue(0x4003, y.ptr, 1), ComValue(0x4003, w.ptr, 1), ComValue(0x4003, h.ptr, 1), 0)
                 left := NumGet(x, 0, "int"), top := NumGet(y, 0, "int"), right := NumGet(w, 0, "int"), bottom := NumGet(h, 0, "int")
