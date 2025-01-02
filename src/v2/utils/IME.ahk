@@ -11,11 +11,18 @@
 class IME {
     static GetInputMode(hwnd := this.GetFocusedWindow()) {
         if (statusModeEN = "") {
+        /*
             if !this.GetOpenStatus(hwnd) {
                 return {
                     code: 0,
                     isCN: 0
                 }
+            }
+            */
+            ; 为rime定制处理
+            return {
+                code: this.GetConversionMode(hwnd),
+                isCN: this.GetConversionMode(hwnd) & 1
             }
         } else {
             return {
