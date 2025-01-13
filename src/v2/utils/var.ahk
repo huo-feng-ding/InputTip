@@ -1,40 +1,8 @@
+; 配置菜单的字体大小
+fz := "s" readIni("gui_font_size", "12")
+
 ; 输入法模式
 mode := readIni("mode", 1, "InputMethod")
-
-try {
-    IniRead("InputTip.ini", "InputMethod", "statusModeEN")
-} catch {
-    switch mode {
-        case 2:
-        {
-            writeIni("mode", 1, "InputMethod")
-        }
-        case 3:
-        {
-            ; 讯飞输入法
-            ; 中文时状态码为 2
-            ; 英文时状态码为 1
-            ; 切换码无规律不唯一
-            writeIni("statusModeEN", ":1:", "InputMethod")
-            writeIni("conversionModeEN", "", "InputMethod")
-            writeIni("mode", 2, "InputMethod")
-        }
-        case 4:
-        {
-            ; 手心输入法:
-            ; 中文时切换码为 1025
-            ; 英文时切换码为 1
-            ; 状态码一直为 1
-            writeIni("statusModeEN", "", "InputMethod")
-            writeIni("conversionModeEN", ":1:", "InputMethod")
-            writeIni("mode", 3, "InputMethod")
-        }
-    }
-    border_type := readIni('border_type', 1)
-    if (border_type = 4) {
-        writeIni('border_type', 0)
-    }
-}
 
 statusModeEN := readIni("statusModeEN", "", "InputMethod")
 conversionModeEN := readIni("conversionModeEN", "", "InputMethod")
@@ -64,13 +32,17 @@ delay := readIni("delay", 50)
 
 ; 开机自启动
 isStartUp := readIni("isStartUp", 0)
-; 启用 JetBrains 支持
-enableJetBrainsSupport := readIni("enableJetBrainsSupport", 0)
 
+; 启用 JAB/JetBrains 支持
+enableJetBrainsSupport := readIni("enableJetBrainsSupport", 0)
 
 updateList(1)
 
 screenList := getScreenInfo()
+
+updateAppOffset(1)
+
+updateCursorMode(1)
 
 ; 鼠标样式相关信息
 cursorInfo := [{
@@ -392,7 +364,72 @@ updateList(init := 0) {
     app_EN := ":" readIni('app_EN', '') ":"
     ; 应用列表: 自动切换到大写锁定
     app_Caps := ":" readIni('app_Caps', '') ":"
+}
+updateAppOffset(init := 0) {
+    global app_offset := {}
+    if (!init) {
+        restartJetBrains()
+    }
+    for i, v in StrSplit(readIni("app_offset", ""), ":") {
+        part := StrSplit(v, "|")
+        app_offset.%part[1]% := {}
+        for i, v in StrSplit(part[2], "*") {
+            p := StrSplit(v, "/")
+            app_offset.%part[1]%.%p[1]% := {}
+            app_offset.%part[1]%.%p[1]%.x := p[2]
+            app_offset.%part[1]%.%p[1]%.y := p[3]
+        }
+    }
+}
+updateCursorMode(init := 0) {
+    global modeList
+    if (!init) {
+        restartJetBrains()
+    }
+    modeList := {
+        HOOK: ":" arrJoin(defaultModeList.HOOK, ":") ":",
+        UIA: ":" arrJoin(defaultModeList.UIA, ":") ":",
+        GUI_UIA: ":" arrJoin(defaultModeList.Gui_UIA, ":") ":",
+        MSAA: ":" arrJoin(defaultModeList.MSAA, ":") ":",
+        HOOK_DLL: ":" arrJoin(defaultModeList.HOOK_DLL, ":") ":",
+        WPF: ":" arrJoin(defaultModeList.WPF, ":") ":",
+        ACC: ":" arrJoin(defaultModeList.ACC, ":") ":",
+        JAB: ":" arrJoin(defaultModeList.JAB, ":") ":"
+    }
+    HOOK := readIni('cursor_mode_HOOK', '')
+    UIA := readIni('cursor_mode_UIA', '')
+    GUI_UIA := readIni('cursor_mode_GUI_UIA', '')
+    MSAA := readIni('cursor_mode_MSAA', '')
+    HOOK_DLL := readIni('cursor_mode_HOOK_DLL', '')
+    WPF := readIni('cursor_mode_WPF', '')
+    ACC := readIni('cursor_mode_ACC', '')
+    JAB := readIni('cursor_mode_JAB', '')
 
-    ; JetBrains 应用列表
-    JetBrains_list := ":" readIni("JetBrains_list", "") ":"
+    for item in modeNameList {
+        for v in StrSplit(%item%, ":") {
+            for value in modeNameList {
+                modeList.%value% := StrReplace(modeList.%value%, ":" v ":", ":")
+            }
+        }
+    }
+    for item in modeNameList {
+        modeList.%item% .= %item% ":"
+    }
+}
+
+updateWhiteList(app) {
+    if (!useWhiteList) {
+        return
+    }
+    global app_show_state
+    _app_show_state := readIni("app_show_state", "")
+    if (!InStr(app_show_state, ":" app ":")) {
+        if (_app_show_state) {
+            _app_show_state .= ":" app
+        } else {
+            _app_show_state := app
+        }
+        app_show_state := ":" _app_show_state ":"
+        writeIni("app_show_state", _app_show_state)
+    }
 }
