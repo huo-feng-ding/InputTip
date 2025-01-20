@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">✨<a href="https://inputtip.pages.dev/">InputTip</a>✨</h1>
+  <h1 align="center">✨<a href="https://inputtip.abgox.com/">InputTip</a>✨</h1>
 </p>
 
 <p align="center">
@@ -44,9 +44,9 @@
     - [样式可以自定义](#自定义鼠标样式)
     - 默认使用 [多彩水滴 Oreo 光标](https://zhutix.com/ico/oreo-cu)
       - 默认中文状态为 **红色**，英文状态为 **蓝色**，大写锁定为 **绿色**
-      - 在 [更多已适配的鼠标样式](https://inputtip.pages.dev/download/extra) 中有提供它们的左手镜像版本
+      - 在 [更多已适配的鼠标样式](https://inputtip.abgox.com/download/extra) 中有提供它们的左手镜像版本
   - 根据输入法状态在输入光标附近显示不同的 [符号](#关于符号)
-    - 默认使用 [白名单机制](https://inputtip.pages.dev/FAQ/white-list/)
+    - 默认使用 [白名单机制](https://inputtip.abgox.com/FAQ/white-list/)
   - 切换不同应用窗口时，自动切换指定的输入法状态(中文/英文/大写锁定)
   - 快捷键强制切换输入法状态
   - 详尽的自定义配置菜单
@@ -54,30 +54,33 @@
     - 你可以设置字体大小来解决屏幕过小导致菜单显示不完全或屏幕过大导致菜单显示过小的问题
       - `更改配置` => `其他杂项` => `所有配置菜单的字体大小`
 
-> - [查看 v1 老版本](./src/v1/README.md) (此版本已经没啥用了，不再更新)
-
 [**如果 `InputTip` 对你有所帮助，请考虑给它一个 Star ⭐**](#stars)
 
 ### 新的变化
 
-- 请查阅 [更新日志](./src/v2/CHANGELOG.md)
+- 请查阅 [更新日志](./src/CHANGELOG.md)
 
 ### 常见问题
 
 - 如果有使用上的任何问题，请先确认当前使用的 `InputTip` 是最新版本 <img style="display:inline;vertical-align: text-bottom;" src="https://img.shields.io/github/v/release/abgox/InputTip?label=%20" alt="version">
   - 在 `托盘菜单` => `关于` 中查看当前版本号
-- 然后查看相关的说明文档、[常见问题(FAQ)](https://inputtip.pages.dev/FAQ/)、[issues](https://github.com/abgox/InputTip/issues) 等等
+- 查看相关的文档
+  - 本页面中包含的内容
+  - [常见问题(FAQ)](https://inputtip.abgox.com/FAQ/)
+  - [输入法和应用窗口兼容情况](#兼容情况)
+  - [issues](https://github.com/abgox/InputTip/issues)
+  - ...
 
 ### 演示
 
-![demo](https://inputtip.pages.dev/releases/v2/demo.gif)
+![demo](https://inputtip.abgox.com/releases/v2/demo.gif)
 
 ---
 
 <details>
 <summary>一个使用方块符号的有趣配置</summary>
-<img style="width: 70%;" src="https://inputtip.pages.dev/releases/v2/config-demo.png" />
-<img style="width: 70%;" src="https://inputtip.pages.dev/releases/v2/config-demo.gif" />
+<img style="width: 70%;" src="https://inputtip.abgox.com/releases/v2/config-demo.png" />
+<img style="width: 70%;" src="https://inputtip.abgox.com/releases/v2/config-demo.gif" />
 </details>
 
 ### 使用
@@ -96,17 +99,9 @@
 >      ```
 >   2. 安装 [AutoHotkey v2](https://www.autohotkey.com/)
 >   3. 直接运行项目中的 `InputTip.ahk` 文件
->      - `src\v2\InputTip.ahk`
+>      - `src\InputTip.ahk`
 
-> [!Warning]
->
-> - 软件中使用到了 `powershell`，请确保你的电脑环境中有 `powershell`
-> - 现在的 Windows，都内置了 `powershell`，但总有一些特殊环境没有，可能导致运行报错
-> - 如何确认是否有 `powershell`？
->   - 打开 `cmd` 输入 `powershell` 回车，如果出现报错，说明没有 `powershell`
->   - 你需要让 `cmd` 能够使用 `powershell`
-
-- **[下载](https://inputtip.pages.dev/download) 并运行 `InputTip.exe` 即可**
+- **[下载](https://inputtip.abgox.com/download) 并运行 `InputTip.exe` 即可**
 
   - 你也可以在项目的 Releases 页面下载
   - 推荐做法: **新建一个目录，将 `InputTip.exe` 放入其中，然后再运行它**
@@ -124,13 +119,15 @@
 - 关于 `UAC` 权限提示窗口
 
   - 由于 `InputTip.exe` 需要管理员权限才能正常运行，所以会弹出 `UAC` 权限提示窗口
-  - 如果你希望不弹出此窗口，请运行由 `InputTip.exe` 生成的 `InputTip.lnk` 快捷方式
+  - 如果你希望不弹出此窗口
+    - 请运行由 `InputTip.exe` 生成的 `InputTip.lnk` 快捷方式
+    - 或者将 `系统设置` 中的 `更改用户账户控制设置` 设置为 `从不通知`
 
 - 设置开机自启动: 点击 `托盘菜单` => `开机自启动`
 
 - 设置鼠标样式
 
-  > [更多已适配的鼠标样式](https://inputtip.pages.dev/download/extra)
+  > [更多已适配的鼠标样式](https://inputtip.abgox.com/download/extra)
 
   1. 点击 `托盘菜单` => `更改配置` => `鼠标样式`
   2. 在下拉列表中，选择包含 `.cur` 或 `.ani` 文件的文件夹目录路径
@@ -161,11 +158,11 @@
    ```
 
 2. 安装 [AutoHotkey v2](https://www.autohotkey.com/)
-   - 这一步完成后，你也可以直接运行 `src\v2\InputTip.ahk` 来使用 `InputTip`
+   - 这一步完成后，你也可以直接运行 `src\InputTip.ahk` 来使用 `InputTip`
 3. 打开 `AutoHotKey Dash`
 4. 点击左边的 `Compile`，等待编译器下载完成
 5. 重新点击左边的 `Compile`
-6. 将 `src\v2\InputTip.ahk` 拖入弹出的编译窗口中
+6. 将 `src\InputTip.ahk` 拖入弹出的编译窗口中
 7. 点击左下角的 `Convert` 完成编译
 8. 运行编译后的 `InputTip.exe`
 
@@ -185,7 +182,7 @@
    - 如果使用了 `开机自启动` 中的 `任务计划程序`，你需要打开 `任务计划程序`，找到 `abgox.InputTip.noUAC` 和 `abgox.InputTip.JAB.JetBrains` 任务，删除它们
    - 也可以忽略，它们不会造成任何影响，但尽量删除，让电脑更清洁
 2. 退出 `InputTip.exe`
-   - 如果修改了鼠标样式，可以通过 `更改配置` => `显示形式` => `1. 要不要修改鼠标样式` 设置为否，会尝试进行恢复
+   - 如果修改了鼠标样式，可以通过 `更改配置` => `显示形式` => `1. 要不要修改鼠标样式` 设置为 `【否】`，会尝试进行恢复
    - 如果未完全恢复，请根据弹窗提示信息进行操作
 3. 删除以上所有文件或目录
 
@@ -221,30 +218,38 @@
 
 ### 关于符号
 
+> [!Tip]
+>
+> - 部分应用窗口可能无法准确获取到输入光标位置，会导致符号无法显示
+> - 你可以使用 `2.33.0` 版本中新增的 `设置符号显示位置` 来解决此问题
+> - 以 `WPS` 为例
+>   - 使用 `设置符号显示位置`，根据窗口提示，将它添加到其中，即可实现在鼠标附近显示
+>   - 这是一个折中的处理方案，此前的 `v1` 版本就一直使用它，稳定性非常好
+> - [应用窗口兼容情况](https://inputtip.abgox.com/FAQ/support-app-list) 会记录这些特别的应用窗口
+
 #### 图片符号
 
 - `InputTip.exe` 启动后，会在同级目录下生成 `InputTipSymbol` 目录，其中包括 `default` 文件夹
 
   - `default` 文件夹中包含了默认的图片符号
-  - 当 `托盘菜单` 中 `更改配置` => `显示形式` => `2. 在输入光标附近显示什么类型的符号`，选择 `显示图片符号` 时，会在输入光标附近显示对应的图片符号
+  - 当 `托盘菜单` 中 `更改配置` => `显示形式` => `2. 显示什么类型的符号`，选择 `显示图片符号` 时，会显示对应的图片符号
   - 你也可以将自己喜欢的图片符号，或者自己制作图片符号，放入 `InputTipSymbol` 目录下
     - 限制: 图片必须是 `.png` 格式
-    - [更多的符号图片](https://inputtip.pages.dev/download/extra)
+    - [更多的符号图片](https://inputtip.abgox.com/download/extra)
   - 然后，点击 `托盘菜单` => `更改配置` => `图片符号`，在对应的下拉列表中选择正确的图片路径
   - 如果留空，则不会显示对应状态的图片符号
 
 #### 方块符号
 
-- 当 `托盘菜单` 中 `更改配置` => `显示形式` => `2. 在输入光标附近显示什么类型的符号`，选择 `显示方块符号` 时，会在输入光标附近显示不同颜色的方块符号
+- 当 `托盘菜单` 中 `更改配置` => `显示形式` => `2. 显示什么类型的符号`，选择 `显示方块符号` 时，会在输入光标附近显示不同颜色的方块符号
 - 默认中文状态为**红色**，英文状态为**蓝色**，大写锁定为**绿色**
 - 方块符号相关的配置: `托盘菜单` => `更改配置` => `方块符号`
 - 当其中的方块符号的颜色设置修改为空时，则不会显示该状态的方块符号
   - 比如: 你只希望在中文状态下显示方块符号，那么就将 `英文状态时方块符号的颜色` 和 `大写锁定时方块符号的颜色` 的值都设置为空
-  - 如果选择 `显示文本符号`，方块符号的颜色为空会导致文本符号无法显示
 
 #### 文本符号
 
-- 当 `托盘菜单` 中 `更改配置` => `显示形式` => `2. 在输入光标附近显示什么类型的符号`，选择 `显示文本符号` 时，会在输入光标附近显示对应的文本符号
+- 当 `托盘菜单` 中 `更改配置` => `显示形式` => `2. 显示什么类型的符号`，选择 `显示文本符号` 时，会显示对应的文本符号
 - 默认中文状态为 `中`，英文状态为 `英`，大写锁定为 `大`
 - 文本符号相关的配置: `托盘菜单` => `更改配置` => `文本符号`
 - 当其中的文本字符设置修改为空时，则不会显示该状态的文本符号
@@ -254,7 +259,7 @@
 
 > [!Tip]
 >
-> - 也可以直接下载 [已经适配的鼠标样式](https://inputtip.pages.dev/download/extra) 来使用
+> - 也可以直接下载 [已经适配的鼠标样式](https://inputtip.abgox.com/download/extra) 来使用
 > - `InputTip.exe` 启动后，会在同级目录下生成 `InputTipCursor` 目录，其中包括 `default` 文件夹
 >   - `default` 用于存放中文/英文/大写锁定状态的 **默认** 鼠标样式
 
@@ -300,6 +305,8 @@
 
 ### 兼容情况
 
+#### [应用窗口兼容情况](https://inputtip.abgox.com/FAQ/support-app-list)
+
 #### 输入法兼容情况
 
 > [!Tip]
@@ -328,7 +335,7 @@
 - **【自定义】**
 
   - 一个万能的模式，需要根据实际情况设置状态码(规则)和切换码(规则)
-  - 详情参考: [关于【自定义】模式](https://inputtip.pages.dev/FAQ/custom-input-mode)
+  - 详情参考: [关于【自定义】模式](https://inputtip.abgox.com/FAQ/custom-input-mode)
   - 可以通过 `设置输入法模式` => `自定义` 使用以下已知可用的配置:
 
     - 选择 `英文状态` 作为判断依据( `中文状态` 相反)
@@ -343,8 +350,6 @@
         - 经过测试，`v3.1` 版本中，在 `切换码数字`的输入框中填入 `1` 即可
         - 兼容性一般，因为获取到的输入法状态可能有误，导致基于此的相关功能都可能有问题
 
-#### [应用窗口兼容情况](https://inputtip.pages.dev/FAQ/support-app-list)
-
 ### 参考项目
 
 - [ImTip - aardio](https://github.com/aardio/ImTip)
@@ -352,9 +357,9 @@
 - [AutoHotkeyScripts - Tebayaki](https://github.com/Tebayaki/AutoHotkeyScripts)
 - [language-indicator - yakunins](https://github.com/yakunins/language-indicator)
 - [RedDot - Autumn-one](https://github.com/Autumn-one/RedDot)
-  - [InputTip v1](./src/v1/README.md) 在鼠标附近显示带文字的方块符号，后来 [InputTip v2](./) 版本默认通过不同颜色的鼠标样式来区分
+  - [InputTip v1](../v1) 在鼠标附近显示带文字的方块符号，后来 [InputTip v2](./) 版本默认通过不同颜色的鼠标样式来区分
   - 之后看到了 [RedDot - Autumn-one](https://github.com/Autumn-one/RedDot) 和 [language-indicator - yakunins](https://github.com/yakunins/language-indicator) 的设计，通过不同颜色加上小符号来判断不同输入法状态
-  - InputTip 也参照了这样的设计，因为这样的实现很简单，其实就是 [InputTip v1](./src/v1/README.md) 中带文字的方块符号，去掉文字，加上不同的背景颜色
+  - InputTip 也参照了这样的设计，因为这样的实现很简单，其实就是 [InputTip v1](../v1) 中带文字的方块符号，去掉文字，加上不同的背景颜色
 
 ### Stars
 
@@ -369,6 +374,6 @@
 
 ### 赞赏支持
 
-<a href='https://ko-fi.com/W7W817R6Z3' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://abgox.pages.dev/buy-me-a-coffee.png' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+<a href='https://ko-fi.com/W7W817R6Z3' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://me.abgox.com/buy-me-a-coffee.png' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 
-![赞赏支持](https://abgox.pages.dev/support.png)
+![赞赏支持](https://me.abgox.com/support.png)
