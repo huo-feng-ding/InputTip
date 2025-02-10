@@ -5,8 +5,8 @@
  * @param urls 版本检查 URL 列表
  */
 checkVersion(currentVersion, callback, urls := [
-    "https://inputtip.abgox.com/releases/v2/version.txt",
     "https://gitee.com/abgox/InputTip/raw/main/src/version.txt",
+    "https://inputtip.abgox.com/releases/v2/version.txt",
     "https://github.com/abgox/InputTip/raw/main/src/version.txt"
 ]) {
     currentVersion := StrReplace(currentVersion, "v", "")
@@ -24,26 +24,28 @@ checkVersion(currentVersion, callback, urls := [
             callback(info.version, info.url)
             return 1
         }
-        req := ComObject("Msxml2.XMLHTTP")
-        req.open("GET", url, true)
-        req.onreadystatechange := Ready
-        req.send()
-        Ready() {
-            if (req.readyState != 4)  ; 没有完成.
-                return
-            if (req.status == 200) {
-                if (info.version) {
+        try {
+            req := ComObject("Msxml2.XMLHTTP")
+            req.open("GET", url, true)
+            req.onreadystatechange := Ready
+            req.send()
+            Ready() {
+                if (req.readyState != 4)  ; 没有完成.
                     return
-                }
-                newVersion := Trim(StrReplace(StrReplace(StrReplace(req.responseText, "`r", ""), "`n", ""), "v", ""))
-                if (newVersion ~= "^[\d\.]+$" && compareVersion(newVersion, currentVersion) > 0) {
+                if (req.status == 200) {
                     if (info.version) {
                         return
                     }
-                    info.version := newVersion
-                    info.url := url
-                    try {
-                        callback(newVersion, url)
+                    newVersion := Trim(StrReplace(StrReplace(StrReplace(req.responseText, "`r", ""), "`n", ""), "v", ""))
+                    if (newVersion ~= "^[\d\.]+$" && compareVersion(newVersion, currentVersion) > 0) {
+                        if (info.version) {
+                            return
+                        }
+                        info.version := newVersion
+                        info.url := url
+                        try {
+                            callback(newVersion, url)
+                        }
                     }
                 }
             }
@@ -147,8 +149,8 @@ checkUpdate(init := 0, once := false) {
                                     killJAB(1, A_IsCompiled)
                                 }
                                 try {
-                                    FileInstall("utils\update.exe", A_AppData "\abgox-InputTip-update-version.exe")
-                                    Run(A_AppData "\abgox-InputTip-update-version.exe " A_ScriptName " " A_ScriptFullPath)
+                                    FileInstall("utils\update.exe", A_AppData "\abgox-InputTip-update-version.exe", 1)
+                                    Run(A_AppData "\abgox-InputTip-update-version.exe " '"' A_ScriptName '" "' A_ScriptFullPath '"')
                                     ExitApp()
                                 } catch {
                                     done := false
@@ -333,18 +335,18 @@ checkUpdateDone() {
                 {
                     writeIni("mode", 1, "InputMethod")
                 }
-                case 3:
-                {
-                    ; 讯飞输入法
-                    writeIni("evenStatusMode", "0", "InputMethod")
-                    writeIni("mode", 0, "InputMethod")
-                }
-                case 4:
-                {
-                    ; 手心输入法
-                    writeIni("conversionMode", ":1:", "InputMethod")
-                    writeIni("mode", 0, "InputMethod")
-                }
+                    case 3:
+                    {
+                        ; 讯飞输入法
+                        writeIni("evenStatusMode", "0", "InputMethod")
+                        writeIni("mode", 0, "InputMethod")
+                    }
+                        case 4:
+                        {
+                            ; 手心输入法
+                            writeIni("conversionMode", ":1:", "InputMethod")
+                            writeIni("mode", 0, "InputMethod")
+                        }
             }
             border_type := readIni('border_type', 1)
             if (border_type = 4) {

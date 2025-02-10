@@ -29,7 +29,8 @@
 
 > [!Tip]
 >
-> `托盘菜单` 指的是在底部任务栏右边的 `InputTip` 软件托盘菜单
+> - `托盘菜单` 指的是在底部任务栏右边的 `InputTip` 软件托盘菜单
+> - 在 README、[官网](https://inputtip.abgox.com)、[常见问题(FAQ)](https://inputtip.abgox.com/FAQ/) 等帮助文档中提及的 `托盘菜单` 指的都是通过鼠标右键点击 `托盘菜单`
 
 ### 介绍
 
@@ -37,22 +38,20 @@
 >
 > QQ 反馈交流群: [451860327](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=ZfHFP_gIMyY6kZvqRmJhrsMlvnLDjLf6&authKey=lXo50SvLgudu%2BettInNZdb2OXGjs%2BxsoqsKIB88Vcq%2FjMb9uEW5thwU5Nm85KNX4&noverify=0&group_code=451860327)
 
-- 使用 `AutoHotKey` 编写，仅 Windows 系统可用
-- 一个实时的输入法状态(中文/英文/大写锁定)提示工具
+- 使用 `AutoHotKey` 编写，仅 Windows 系统可用(**Win10** 以上可用，以下未知)
+- 一个实时的输入法状态提示工具
 
-  - 根据输入法状态改变鼠标样式
-    - [样式可以自定义](#自定义鼠标样式)
+  - 根据输入法状态同步修改鼠标样式
+    - [自定义鼠标样式](#自定义鼠标样式)
     - 默认使用 [多彩水滴 Oreo 光标](https://zhutix.com/ico/oreo-cu)
       - 默认中文状态为 **红色**，英文状态为 **蓝色**，大写锁定为 **绿色**
       - 在 [更多已适配的鼠标样式](https://inputtip.abgox.com/download/extra) 中有提供它们的左手镜像版本
   - 根据输入法状态在输入光标附近显示不同的 [符号](#关于符号)
     - 默认使用 [白名单机制](https://inputtip.abgox.com/FAQ/white-list/)
-  - 切换不同应用窗口时，自动切换指定的输入法状态(中文/英文/大写锁定)
+  - 切换不同应用窗口时，自动切换指定的输入法状态
   - 快捷键强制切换输入法状态
-  - 详尽的自定义配置菜单
+  - 详细便捷的配置菜单
     - 所有配置的修改，都在 `托盘菜单` 中进行
-    - 你可以设置字体大小来解决屏幕过小导致菜单显示不完全或屏幕过大导致菜单显示过小的问题
-      - `更改配置` => `其他杂项` => `所有配置菜单的字体大小`
 
 [**如果 `InputTip` 对你有所帮助，请考虑给它一个 Star ⭐**](#stars)
 
@@ -83,6 +82,48 @@
 <img style="width: 70%;" src="https://inputtip.abgox.com/releases/v2/config-demo.gif" />
 </details>
 
+### 安装
+
+> [!Tip]
+>
+> 配置信息保存在 `InputTip.exe` 同级目录下的 `InputTip.ini` 配置文件中
+
+> [!Warning]
+>
+> - 如果使用下方的 [Scoop](https://scoop.sh/) 安装命令，无法通过 `scoop update InputTip` 进行更新
+> - 如果使用下方的 [WinGet](https://github.com/microsoft/winget-cli) 安装命令，不要通过 [WinGet](https://github.com/microsoft/winget-cli) 进行二次安装或更新，这会导致配置文件丢失
+> - 因此，以下安装方式都只建议首次下载安装时使用，然后使用 InputTip 内置的 [更新检查](https://inputtip.abgox.com/FAQ/check-update) 进行更新
+
+1. 使用 [Scoop](https://scoop.sh/) 安装:
+
+   ```shell
+   scoop install https://inputtip.abgox.com/installer/scoop/InputTip.json
+   ```
+
+2. 使用 [WinGet](https://github.com/microsoft/winget-cli) 安装:
+
+   ```shell
+   winget install abgox.InputTip
+   ```
+
+3. [手动下载 InputTip.exe 或 InputTip.zip](https://inputtip.abgox.com/download)
+
+   - 下载 `InputTip.zip` 解压并运行其中的 `InputTip.exe`
+
+   - 下载 `InputTip.exe` 并运行它
+
+     - **建议首先新建一个目录，将 `InputTip.exe` 放入其中，然后再运行它**
+       - 因为运行 `InputTip.exe` 后，会产生以下文件或文件夹
+         - `InputTipCursor` 鼠标样式文件夹
+         - `InputTipSymbol` 图片符号文件夹
+         - `InputTip.ini` 配置文件
+         - `InputTip.lnk` 快捷方式
+           - 通过任务计划程序生成的特殊快捷方式
+           - 运行此快捷方式不会弹出 `UAC` 权限提示窗口
+           - 此快捷方式被删除后，会随着 `InputTip.exe` 启动重新生成
+           - 详情查看 [关于 UAC](https://inputtip.abgox.com/FAQ/UAC-window)
+       - **这样做，所有相关的文件或文件夹都在同一个目录中，方便管理**
+
 ### 使用
 
 > [!Tip]
@@ -101,46 +142,37 @@
 >   3. 直接运行项目中的 `InputTip.ahk` 文件
 >      - `src\InputTip.ahk`
 
-- **[下载](https://inputtip.abgox.com/download) 并运行 `InputTip.exe` 即可**
+1. 完成 [安装](#安装) 后，运行 `InputTip.exe` 即可
 
-  - 你也可以在项目的 Releases 页面下载
-  - 推荐做法: **新建一个目录，将 `InputTip.exe` 放入其中，然后再运行它**
-    - 因为运行 `InputTip.exe` 后，会产生以下文件或文件夹
-      - `InputTipCursor` 鼠标样式文件夹
-      - `InputTipSymbol` 图片符号文件夹
-      - `InputTip.ini` 配置文件
-      - `InputTip.lnk` 快捷方式
-        - 通过任务计划程序生成的特殊快捷方式
-        - 运行此快捷方式不会弹出 `UAC` 权限提示窗口
-        - 此快捷方式被删除后，会随着 `InputTip.exe` 启动重新生成
-    - **这样做，所有相关的文件或文件夹都在同一个目录中，方便管理**
-      - 或者直接下载 `InputTip.zip`
+2. 设置开机自启动: `托盘菜单` => `开机自启动`
 
-- 关于 `UAC` 权限提示窗口
+   - 建议使用 `任务计划程序` 或 `注册表`
+   - `应用快捷方式` 可能会无效
+   - 详情请查看 [关于开机自启动](https://inputtip.abgox.com/FAQ/startup)
 
-  - 由于 `InputTip.exe` 需要管理员权限才能正常运行，所以会弹出 `UAC` 权限提示窗口
-  - 如果你希望不弹出此窗口
-    - 请运行由 `InputTip.exe` 生成的 `InputTip.lnk` 快捷方式
-    - 或者将 `系统设置` 中的 `更改用户账户控制设置` 设置为 `从不通知`
+3. 设置 `所有配置菜单的字体大小`
 
-- 设置开机自启动: 点击 `托盘菜单` => `开机自启动`
+   - 你可以设置字体大小来解决屏幕过小导致菜单显示不完全或屏幕过大导致菜单显示过小的问题
+   - `更改配置` => `其他杂项` => `所有配置菜单的字体大小`
 
-- 设置鼠标样式
+4. 设置鼠标样式
 
-  > [更多已适配的鼠标样式](https://inputtip.abgox.com/download/extra)
+   > [更多已适配的鼠标样式](https://inputtip.abgox.com/download/extra)
 
-  1. 点击 `托盘菜单` => `更改配置` => `鼠标样式`
-  2. 在下拉列表中，选择包含 `.cur` 或 `.ani` 文件的文件夹目录路径
-     - 比如默认的中文鼠标样式文件夹目录路径: `InputTipCursor\default\CN`
-  3. 点击 `确认`
+   - `托盘菜单` => `更改配置` => `鼠标样式`，在下拉列表中选择鼠标样式文件夹路径
+   - 比如默认的中文鼠标样式文件夹路径: `InputTipCursor\default\CN`
+
+5. 更多相关配置在 `托盘菜单` 中查看
 
 > [!Warning]
 >
-> - 你应该尽量让三种状态下的鼠标样式文件夹中包含的鼠标样式文件的数量和类型是一致的
-> - 比如：
->   - 如果中文状态的目录路径下有 `IBeam.cur` 或 `IBeam.ani` 文件，英文状态或大写锁定的目录路径下没有。
->   - 则切换到中文状态时，会加载中文状态的 `IBeam.cur`
->   - 但是再切换到英文或大写锁定时，`IBeam` 类型的鼠标样式不会变化，因为英文和大写锁定缺少对应的样式文件
+> 需要注意: `InputTip` 是使用 `AutoHotkey` 编写的
+>
+> 在游戏领域，`AutoHotkey` 更多时候会被当做外挂，可能会导致 `InputTip` 被误判为外挂
+>
+> 这也是推荐使用 [白名单机制](https://inputtip.abgox.com/FAQ/white-list/) 的一个原因，使用 [白名单机制](https://inputtip.abgox.com/FAQ/white-list/) 会降低这种误判几率
+>
+> 但是更建议，使用 `暂停/运行` 或 `暂停/运行快捷键` 先暂停 `InputTip` 再运行游戏
 
 ### 编译
 
@@ -178,7 +210,7 @@
 
 ---
 
-1. 取消 `开机自启动`: 点击 `托盘菜单` => `设置` => `开机自启动`
+1. 取消 `开机自启动`: `托盘菜单` => `设置` => `开机自启动`
    - 如果使用了 `开机自启动` 中的 `任务计划程序`，你需要打开 `任务计划程序`，找到 `abgox.InputTip.noUAC` 和 `abgox.InputTip.JAB.JetBrains` 任务，删除它们
    - 也可以忽略，它们不会造成任何影响，但尽量删除，让电脑更清洁
 2. 退出 `InputTip.exe`
@@ -202,12 +234,12 @@
      jabswitch -enable
    ```
 
-2. 点击 `托盘菜单` => `启用 JAB/JetBrains IDE 支持`
+2. `托盘菜单` => `启用 JAB/JetBrains IDE 支持`
 
    - 会在 `InputTip.exe` 同级目录下生成 `InputTip.JAB.JetBrains.exe`
    - 它由 `InputTip.exe` 控制，不需要手动启动/终止
 
-3. 点击 `托盘菜单` => `设置光标获取模式`，将 JetBrains IDE 应用添加到其中的 `JAB` 列表中
+3. `托盘菜单` => `设置光标获取模式`，将 JetBrains IDE 应用添加到其中的 `JAB` 列表中
 
 4. 如果未生效，请重启正在使用的 JetBrains IDE
 
@@ -236,8 +268,8 @@
   - 你也可以将自己喜欢的图片符号，或者自己制作图片符号，放入 `InputTipSymbol` 目录下
     - 限制: 图片必须是 `.png` 格式
     - [更多的符号图片](https://inputtip.abgox.com/download/extra)
-  - 然后，点击 `托盘菜单` => `更改配置` => `图片符号`，在对应的下拉列表中选择正确的图片路径
-  - 如果留空，则不会显示对应状态的图片符号
+  - 设置方法: `托盘菜单` => `更改配置` => `图片符号`，在对应的下拉列表中选择图片路径
+  - 如果选择第一个空白路径，则不会显示对应状态的图片符号
 
 #### 方块符号
 
@@ -293,7 +325,7 @@
 
    - 详情参考 [微软文档: 关于光标(游标)](https://learn.microsoft.com/windows/win32/menurc/about-cursors)
 
-2. 点击 `托盘菜单` => `更改配置` => `鼠标样式` => 在下拉列表中选择对应文件夹目录路径
+2. `托盘菜单` => `更改配置` => `鼠标样式` => 在下拉列表中选择对应文件夹目录路径
 
 > [!Warning]
 >
@@ -319,7 +351,7 @@
   - [搜狗输入法](https://shurufa.sogou.com/)，[搜狗五笔输入法](https://wubi.sogou.com/)
   - [QQ 输入法](https://qq.pinyin.cn/)
   - [百度输入法](https://shurufa.baidu.com/)
-  - 微软拼音，微软五笔，微软仓颉
+  - 微软拼音，微软五笔，微软仓颉...
   - [冰凌输入法](https://icesofts.com/)
   - 小鹤音形输入法
     - 需要使用 [多多输入法生成器](https://duo.ink/ddimegen/ddimegen-desc.html) 生成

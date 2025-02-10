@@ -38,7 +38,7 @@ fn_config(*) {
         g.AddText("xs", line)
         g.AddText("xs", "1. 是否同步修改鼠标样式: ")
         _ := g.AddDropDownList("w" bw / 2 " yp AltSubmit Choose" changeCursor + 1, ["【否】不要修改鼠标样式，保持原本的鼠标样式", "【是】需要修改鼠标样式，随输入法状态而变化"])
-        g.AddText("xs cGray", "推荐设置为【是】，它与符号一起搭配使用才是最完美的输入法状态提示方案")
+        g.AddText("xs cGray", "推荐设置为【是】，它与符号一起搭配使用才是更完美的输入法状态提示方案")
         _.Focus()
         _.OnEvent("Change", e_change_cursor)
         e_change_cursor(item, *) {
@@ -107,12 +107,19 @@ fn_config(*) {
         fn_clear(item, *) {
             item.value := ""
         }
-        g.AddText("xs cGray", "鼠标悬浮在符号上时，符号会隐藏，下次键盘操作或光标位置变化时再次显示`n如果某些应用中无法正常显示，可以通过「托盘菜单」中的「设置符号显示位置」，让它在鼠标附近显示")
+        _ := g.AddCheckbox("xs", "当鼠标悬浮在符号上时，符号是否需要隐藏 (下次键盘操作或光标位置变化时再次显示)")
+        _.Value := hoverHide
+        _.OnEvent("Click", e_check)
+        e_check(item, *) {
+            global hoverHide := item.value
+            writeIni("hoverHide", item.value)
+        }
+        g.AddText("xs cGray", "如果某些应用中无法正常显示符号，可以通过「托盘菜单」中的「设置符号显示位置」，让它在鼠标附近显示")
         g.AddText("xs", "3. 无键盘和鼠标左键点击操作时，符号在多少")
         g.AddText("yp cRed", "毫秒")
         g.AddText("yp", "后隐藏:")
         _ := g.AddEdit("yp Number")
-        _.Value := HideSymbolDelay
+        _.Value := hideSymbolDelay
         _.OnEvent("Change", e_hideSymbolDelay)
         e_hideSymbolDelay(item, *) {
             value := item.value
@@ -122,8 +129,8 @@ fn_config(*) {
             if (value != 0 && value < 150) {
                 value := 150
             }
-            writeIni("HideSymbolDelay", value)
-            global HideSymbolDelay := value
+            writeIni("hideSymbolDelay", value)
+            global hideSymbolDelay := value
             updateDelay()
             restartJAB()
         }
@@ -257,10 +264,10 @@ fn_config(*) {
             reloadSymbol()
         }
         fn_writeIsolateConfig(item, *) {
-            if (InStr(item._config, "color")) {
-                writeIni(item._config, item.Value)
+            if (RegExMatch(item._config, "(color)|(font)")) {
+                writeIni(item._config, item.Text)
             } else {
-                writeIni(item._config, returnNumber(item.Value))
+                writeIni(item._config, returnNumber(item.Text))
             }
             if (item._update) {
                 updateSymbol()
@@ -333,7 +340,7 @@ fn_config(*) {
             }
         }
         g.AddText("xs", line)
-        g.AddText("xs Section cRed", "如果下方的 3 个下拉列表中显示的图片符号路径不是最新的，请点击下方的「刷新路径列表」")
+        g.AddText("xs Section cRed", "如果下方的 3 个下拉列表中显示的图片符号路径不是最新的，请点击下方的「刷新路径列表」`n如果选择第一个空白路径，则不会显示对应状态的图片符号")
         g.AddText(, "选择图片符号的文件路径: ")
         dirList := StrSplit(picDir, ":")
         if (dirList.Length = 0) {
@@ -569,7 +576,7 @@ fn_config(*) {
         g.AddText("Section", "- 你应该首先查看")
         g.AddText("yp cRed", "文本符号")
         g.AddLink("yp", '的相关说明:   <a href="https://inputtip.abgox.com/FAQ/symbol-text">官网</a>   <a href="https://github.com/abgox/InputTip">Github</a>   <a href="https://gitee.com/abgox/InputTip">Gitee</a>')
-        g.AddLink("xs", '- 文本字符可以设置为空，表示不显示对应的文本字符。 <a href="https://inputtip.abgox.com/FAQ/color-config">关于颜色配置</a>')
+        g.AddLink("xs", '- 文本字符可以设置为空，表示不显示对应的文本字符。 <a href="https://inputtip.abgox.com/FAQ/color-config">关于颜色配置</a>   <a href="https://inputtip.abgox.com/FAQ/font-config">关于字体配置</a>')
         g.AddText("xs", line)
         symbolTextConfig := [{
             config: "CN_Text",
@@ -639,13 +646,18 @@ fn_config(*) {
         }]
         for v in symbolTextConfig {
             g.AddText(v.textOpt, v.tip ": ")
-            _ := g.AddEdit("yp " v.editOpt)
+            if (v.config = "font_family") {
+                _ := g.AddComboBox("yp AltSubmit r9" v.editOpt, fontList)
+            } else {
+                _ := g.AddEdit("yp " v.editOpt)
+            }
             _._config := v.config
-            _.Value := symbolConfig.%v.config%
+            _.Text := symbolConfig.%v.config%
             _.OnEvent("Change", e_text_config)
+
         }
         e_text_config(item, *) {
-            value := item.value
+            value := item.Text
             if (item._config = "textSymbol_transparent") {
                 if (value = "") {
                     return
@@ -737,8 +749,13 @@ fn_config(*) {
                     for v in configList {
                         config := v.config state
                         g.AddText(v.textOpt, v.tip)
-                        _g := g.AddEdit("yp " v.editOpt)
-                        _g.Value := symbolConfig.%config%
+
+                        if (v.config = "font_family") {
+                            _g := g.AddComboBox("yp AltSubmit r9 " v.editOpt, fontList)
+                        } else {
+                            _g := g.AddEdit("yp " v.editOpt)
+                        }
+                        _g.Text := symbolConfig.%config%
                         _g._config := config
                         _g._update := symbolType = 3 && symbolConfig.enableIsolateConfigText
                         _g.OnEvent("Change", fn_writeIsolateConfig)
@@ -783,7 +800,7 @@ fn_config(*) {
             writeIni("trayTipTemplate", value)
             updateTip(A_IsPaused)
         }
-        g.AddEdit("xs ReadOnly cGray -VScroll w" bw, '可使用的模板变量: %appState% 会替换为软件运行状态，%\n% 表示换行')
+        g.AddEdit("xs ReadOnly cGray -VScroll w" bw, '可使用的模板变量: %appState% 会替换为软件运行状态(运行/暂停)，%\n% 表示换行')
 
         g.AddText("Section xs", "3. 设置按键次数统计的文字模板")
         _ := g.AddEdit("w" bw)

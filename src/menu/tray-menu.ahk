@@ -12,6 +12,9 @@
 #Include JAB.ahk
 #Include about.ahk
 
+fontList := getFontList()
+fontList.InsertAt(1, "微软雅黑")
+
 makeTrayMenu() {
     A_TrayMenu.Delete()
     A_TrayMenu.Add("开机自启动", fn_startup)
@@ -486,7 +489,7 @@ fn_white_list(*) {
         rmConfirm2: "从「符号显示白名单」中移除？",
         rmConfirm3: "移除后，白名单机制下，在此应用窗口中时，不会显示符号",
     },
-    fn
+        fn
     )
     fn(value) {
         global app_show_state := ":" value ":"
@@ -581,6 +584,22 @@ getPicDir() {
     picList.InsertAt(1, '')
     return picList
 }
+
+/**
+ * 获取字体名称列表
+ */
+getFontList() {
+    list := []
+    for v in ["HKEY_CURRENT_USER", "HKEY_LOCAL_MACHINE"] {
+        loop reg v "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
+        {
+            ; 去除注册表项中的括号及后缀（如 "(TrueType)"）
+            list.Push(RegExReplace(A_LoopRegName, "\s*\(.*?\)$", ""))
+        }
+    }
+    return list
+}
+
 /**
  * 启动 JAB 进程
  * @returns {1|0} 1/0: 是否存在错误
