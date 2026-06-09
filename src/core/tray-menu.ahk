@@ -23,7 +23,7 @@ makeTrayMenu() {
         A_TrayMenu.Add(i18n("runCodeWithAdmin"), (*) => (
             A_TrayMenu.ToggleCheck(i18n("runCodeWithAdmin")),
             changeConfig("runCodeWithAdmin", !var.runCodeWithAdmin, 0),
-            var.runCodeWithAdmin ? fn_restart() : 0
+            var.runCodeWithAdmin ? restartApp() : 0
         ))
         if (A_IsAdmin && var.runCodeWithAdmin) {
             A_TrayMenu.Check(i18n("runCodeWithAdmin"))
@@ -47,7 +47,7 @@ makeTrayMenu() {
         createProcessMenuGui.Bind({
             title: i18n("hotkey"),
             tab: [i18n("hotkeyRule")],
-            trigger: triggerKeyList,
+            trigger: hotkeyTriggerKeyList,
             link: getDocsLink("rule/hotkey"),
             section: "Hotkey.Rule",
             cols: ["hotkey", "trigger", "process", "condition", "class", "title"],
@@ -67,19 +67,19 @@ makeTrayMenu() {
     A_TrayMenu.Add(i18n("moreSettings"), e_moreSettings)
     A_TrayMenu.Add()
     A_TrayMenu.Add(i18n("about"), e_about)
-    A_TrayMenu.Add(i18n("Restart"), fn_restart)
+    A_TrayMenu.Add(i18n("Restart"), restartApp)
 
     A_TrayMenu.Add()
-    A_TrayMenu.Add(i18n("Exit"), fn_exit)
+    A_TrayMenu.Add(i18n("Exit"), closeApp)
 }
 
-fn_exit(*) {
+closeApp(*) {
     try ProcessClose(updaterPID)
     killJAB()
     revertCursor()
     ExitApp()
 }
-fn_restart(*) {
+restartApp(*) {
     try ProcessClose(updaterPID)
     if (var.symbolJABActive) {
         killJAB()
@@ -266,7 +266,30 @@ createProcessMenuGui(meta, *) {
                     _ := g.AddEdit(opt, "")
                     try _.Text := colValue.process
                     colValue.process := _.Text
-                    _.OnEvent("Change", (i, *) => colValue.process := i.Text)
+                    _.OnEvent("Change", (i, *) => (colValue.process := i.Text, updateProcessState(i.Text)))
+                }
+
+                updateProcessState(value) {
+                    static lastCondition := ""
+                    if !column.Get("hotkey", 0)
+                        return
+
+                    if value == "" {
+                        var._conditionCtrl.Opt("+Disabled")
+                        if var._conditionCtrl.Text != "" {
+                            lastCondition := var._conditionCtrl.Text
+                            colValue.condition := var._conditionCtrl.Text := ""
+                        }
+                        color := "cC0C0C0"
+                    } else {
+                        var._conditionCtrl.Opt("-Disabled")
+                        if var._conditionCtrl.Text == "" && lastCondition
+                            colValue.condition := var._conditionCtrl.Text := lastCondition
+
+                        color := "cDefault"
+                    }
+                    var._classEditCtrl.Opt(color)
+                    var._titleEditCtrl.Opt(color)
                 }
             }
 
@@ -279,7 +302,7 @@ createProcessMenuGui(meta, *) {
                         triggerList.Push(i18n("trigger." v))
                     }
                     renderGroupBox(g, "match.trigger", "xs h70 w" bw)
-                    _ := g.AddDropDownList(opt, triggerList)
+                    _ := g.AddDropDownList(opt " r9", triggerList)
                     try _.Text := colValue.trigger
                     colValue.trigger := _.Text
                     _.OnEvent("Change", (i, *) => colValue.trigger := i.Text)
@@ -295,7 +318,7 @@ createProcessMenuGui(meta, *) {
                         conditionList.Push(i18n("condition." v))
                     }
                     renderGroupBox(g, "match.condition", "xs h70 w" bw)
-                    var._conditionCtrl := _ := g.AddDropDownList(opt, conditionList)
+                    var._conditionCtrl := _ := g.AddDropDownList(opt " r9", conditionList)
                     try _.Text := colValue.condition
                     colValue.condition := _.Text
                     _.OnEvent("Change", (i, *) => (updateConditionState(i.Text), colValue.condition := i.Text))
@@ -374,7 +397,7 @@ createProcessMenuGui(meta, *) {
                             _opt := "yp"
                             g.AddText("yp", ">")
                         }
-                        ddlControls[i] := _ := g.AddDropDownList(_opt " w" bw / 5 - 5, ["", modeNameList*])
+                        ddlControls[i] := _ := g.AddDropDownList(_opt " r9 w" bw / 5 - 5, ["", modeNameList*])
                         try _.Text := StrSplit(colValue.capture, ">")[i]
                         captureList[i] := _.Text
                         _.num := i
@@ -524,6 +547,7 @@ createProcessMenuGui(meta, *) {
                     v()
             }
             try updateConditionState(colValue.condition)
+            try updateProcessState(colValue.process)
 
             tab.UseTab(0)
 
@@ -577,7 +601,7 @@ createProcessMenuGui(meta, *) {
                         }
                         cols.Push(col)
                         if val {
-                            IniWrite(val, configFile, section, v)
+                            writeIni(v, val, section)
                         } else {
                             IniDelete(configFile, section, v)
                         }
@@ -589,7 +613,7 @@ createProcessMenuGui(meta, *) {
                     } catch {
                         trigger := LV.trigger
                     }
-                    IniWrite(trigger, configFile, section, "trigger")
+                    writeIni("trigger", trigger, section)
                     restartJAB()
                     parseWindowRule()
                     registerHotkey()
@@ -670,7 +694,7 @@ createProcessMenuGui(meta, *) {
 
         e_add(LV, *) {
             colValue := {
-                time: returnTime()
+                time: returnTimeId(var._ruleIds)
             }
             for k, v in column {
                 if (!colValue.HasProp(k)) {
@@ -737,12 +761,6 @@ resumeApp() {
 
         if var.cursorActive
             loadCursor(currentState, 1)
-        if var.overlayActive
-            showOverlay(currentState)
-        if var.caretSymbolType
-            reloadCaretSymbol()
-        if var.cursorSymbolType
-            reloadCursorSymbol()
         if var.symbolJABActive
             restartJAB()
 

@@ -55,6 +55,7 @@ var := {
     inputMethodDetectionTimeout: readIni("inputMethodDetectionTimeout", 200),
     ; 是否保持大写锁定状态
     keepCapsLockWhenStateSwitch: readIni("keepCapsLockWhenStateSwitch", 0),
+    keepCapsLockWhenKeyboardSwitch: readIni("keepCapsLockWhenKeyboardSwitch", 0),
     ; 是否将输入法状态导出
     exportState: readIni("exportState", 0),
     exportStateFile: A_Temp "\abgox.InputTip.State",
@@ -187,21 +188,33 @@ conditionTextMap := Map()
 for v in windowConditionKeyList
     conditionTextMap.Set(i18n("condition." v), v)
 
+
+allTriggerKeyList := ["hotkey"]
 switchTriggerKeyList := [
     "switchStateCaps-CapsLock",
     "switchStateCN-LShift", "switchStateCN-RShift", "switchStateCN-CtrlSpace", "switchStateCN-IME",
     "switchStateEN-LShift", "switchStateEN-RShift", "switchStateEN-CtrlSpace", "switchStateEN-IME",
-    "switchKeyboardCN", "switchKeyboardEN", "switchKeyboardJP", "switchKeyboardKR",
+    "switchKeyboardCN", "switchKeyboardUS", "switchKeyboardJP", "switchKeyboardKR",
 ]
+allTriggerKeyList.Push(switchTriggerKeyList.Clone()*)
+
 triggerKeyList := switchTriggerKeyList.Clone()
-triggerKeyList.Push("setWindowTop", "cancelWindowTop", "pause", "resume", "exit", "restart", "showStateCode")
+_ := ["setWindowTop", "cancelWindowTop", "toggleWindowTop", "exit", "restart", "pause", "resume", "toggle"]
+triggerKeyList.Push(_*)
+allTriggerKeyList.Push(_*)
+
+hotkeyTriggerKeyList := triggerKeyList.Clone()
+hotkeyTriggerKeyList.InsertAt(1, "none")
+hotkeyTriggerKeyList.Push("showStateCode")
+allTriggerKeyList.Push("none", "showStateCode")
 
 windowTriggerKeyList := triggerKeyList.Clone()
 windowTriggerKeyList.InsertAt(10, "ignoreStateSwitch")
 windowTriggerKeyList.InsertAt(15, "ignoreKeyboardSwitch")
+allTriggerKeyList.Push("ignoreStateSwitch", "ignoreKeyboardSwitch")
 
 triggerTextMap := Map()
-for v in ["ignoreStateSwitch", "ignoreKeyboardSwitch", "hotkey", triggerKeyList*]
+for v in allTriggerKeyList
     triggerTextMap.Set(i18n("trigger." v), v)
 
 runTriggers(triggers, *) {
@@ -217,14 +230,16 @@ runTriggers(triggers, *) {
             case "switchStateEN-CtrlSpace": _switchState("EN", "{Ctrl Down}{Space Down}{Ctrl Up}{Space Up}")
             case "switchStateEN-IME": _switchState("EN", "IME")
             case "switchKeyboardCN": switchKeyboard("CN")
-            case "switchKeyboardEN": switchKeyboard("EN")
+            case "switchKeyboardUS": switchKeyboard("US")
             case "switchKeyboardJP": switchKeyboard("JP")
             case "switchKeyboardKR": switchKeyboard("KR")
+            case "toggle": toggleApp()
             case "pause": suspendApp()
             case "resume": resumeApp()
-            case "exit": SetTimer(fn_exit, -500)
-            case "restart": SetTimer(fn_restart, -500)
-            case "showStateCode": showStateCode(1)
+            case "exit": SetTimer(closeApp, -500)
+            case "restart": SetTimer(restartApp, -500)
+            case "showStateCode": showStateCode(var._showStateCode := !var._showStateCode)
+            case "toggleWindowTop": try WinSetAlwaysOnTop((WinGetExStyle("A") & 0x8) ? 0 : 1, "A")
             case "setWindowTop":
                 if !(WinGetExStyle("A") & 0x8)
                     try WinSetAlwaysOnTop(1, "A")
@@ -235,7 +250,7 @@ runTriggers(triggers, *) {
         }
     }
     _switchState(state, key) {
-        switchKeyboard("CN"), Sleep(50), switchState(state, key)
+        switchKeyboard("CN", 1), Sleep(50), switchState(state, key)
     }
 }
 
@@ -243,7 +258,7 @@ returnTriggers(exeName, exeTitle, exeClass) {
     conditionalTriggers := []
     unconditionalTriggers := []
 
-    for trigger in triggerKeyList {
+    for trigger in windowTriggerKeyList {
         rules := matchWindowRules(exeName, exeTitle, exeClass, var.WindowRule[trigger])
 
         for rule in rules {
@@ -276,14 +291,15 @@ textToState(stateText) {
 
 var._previewOffsetMap := Map() ; 用于窗口偏移量的实时预览
 var._matchCache := Map()
+var._ruleIds := Map()
 
 parseWindowRule()
 
 parseWindowRule() {
     newWindowRule := Map()
-    for v in ["", "ignoreStateSwitch", "ignoreKeyboardSwitch", triggerKeyList*] {
+    for v in ["", windowTriggerKeyList*]
         newWindowRule.Set(v, Map())
-    }
+
     newWindowOverlayRule := Map(
         "show", Map(),
         "hide", Map(),
@@ -311,18 +327,31 @@ parseWindowRule() {
     newWindowIdleTimerRule := Map()
     newWindowTextMonitorRule := Map()
     newWindowHotkeyMonitorRule := Map()
+    for v in hotkeyTriggerKeyList
+        newHotkeyRule.Set(v, Map())
 
     for name in StrSplit(IniRead(configFile, , , ""), "`n") {
         rule := {}
+
+        rulePos := InStr(name, ".Rule.")
+        if !rulePos
+            continue
+        timeStr := SubStr(name, rulePos + 6)
+        rule.time := timeStr
+        id := InStr(timeStr, ":") ? timeStr : StrSplit(timeStr, ".")[2]
+        var._ruleIds.Set(id, 1)
+
         for k in windowRuleKeys
             rule.%k% := IniRead(configFile, name, k, "")
         if InStr(name, "Window.Rule.") {
+            if rule.trigger == "switchKeyboardEN" {
+                try IniWrite("switchKeyboardUS", configFile, name, "trigger")
+                rule.trigger := "switchKeyboardUS"
+            }
             if !newWindowRule.Has(rule.trigger) {
                 try IniDelete(configFile, name)
                 continue
             }
-
-            rule.time := StrReplace(name, "Window.Rule.")
             triggerMap := newWindowRule[rule.trigger]
             if !triggerMap.Has(rule.process)
                 triggerMap.Set(rule.process, [])
@@ -348,7 +377,6 @@ parseWindowRule() {
                 try IniDelete(configFile, name)
                 continue
             }
-            rule.time := StrReplace(name, "Window.Overlay.Rule.")
             triggerMap := newWindowOverlayRule[rule.trigger]
             if !triggerMap.Has(rule.process)
                 triggerMap.Set(rule.process, [])
@@ -358,7 +386,6 @@ parseWindowRule() {
                 try IniDelete(configFile, name)
                 continue
             }
-            rule.time := StrReplace(name, "Window.Border.Rule.")
             triggerMap := newWindowBorderRule[rule.trigger]
             if !triggerMap.Has(rule.process)
                 triggerMap.Set(rule.process, [])
@@ -368,7 +395,6 @@ parseWindowRule() {
                 try IniDelete(configFile, name)
                 continue
             }
-            rule.time := StrReplace(name, "Window.CursorSymbol.Rule.")
             triggerMap := newWindowCursorSymbolRule[rule.trigger]
             if !triggerMap.Has(rule.process)
                 triggerMap.Set(rule.process, [])
@@ -378,7 +404,6 @@ parseWindowRule() {
                 try IniDelete(configFile, name)
                 continue
             }
-            rule.time := StrReplace(name, "Window.CaretSymbol.Rule.")
             triggerMap := newWindowCaretSymbolRule[rule.trigger]
 
             if rule.trigger == "capture" {
@@ -403,16 +428,19 @@ parseWindowRule() {
             }
             triggerMap.Get(rule.process).Push(rule)
         } else if InStr(name, "Hotkey.Rule.") {
-            if !newWindowRule.Has(rule.trigger) {
+            if rule.trigger == "switchKeyboardEN" {
+                try IniWrite("switchKeyboardUS", configFile, name, "trigger")
+                rule.trigger := "switchKeyboardUS"
+            }
+            if !newHotkeyRule.Has(rule.trigger) {
                 try IniDelete(configFile, name)
                 continue
             }
-            rule.time := StrReplace(name, "Hotkey.Rule.")
             for k in windowRuleKeys
                 rule.%k% := IniRead(configFile, name, k, "")
             if !newHotkeyRule.Has(rule.process)
                 newHotkeyRule.Set(rule.process, [])
-            newHotkeyRule.Get(rule.process).Push(rule)
+            try newHotkeyRule.Get(rule.process).Push(rule)
         }
     }
 
@@ -445,7 +473,7 @@ getMatchingRuleLists(exeName, triggerMap, hotkey := 0) {
     for key, ruleList in triggerMap {
         if (key == "" && !hotkey) || key == exeName
             continue
-        if RegExMatch(exeName, key)
+        if safeRegexMatch(exeName, key)
             result.Push(ruleList)
     }
 
@@ -457,11 +485,11 @@ getMatchingRuleLists(exeName, triggerMap, hotkey := 0) {
 matchCondition(rule, exeTitle, exeClass) {
     switch rule.condition {
         case "class":
-            return RegExMatch(exeClass, rule.class)
+            return safeRegexMatch(exeClass, rule.class)
         case "title":
-            return RegExMatch(exeTitle, rule.title)
+            return safeRegexMatch(exeTitle, rule.title)
         case "classAndTitle":
-            return RegExMatch(exeClass, rule.class) && RegExMatch(exeTitle, rule.title)
+            return safeRegexMatch(exeClass, rule.class) && safeRegexMatch(exeTitle, rule.title)
         default:
             return true
     }
@@ -546,7 +574,7 @@ updateScreenOffset(prefix) {
     }
 }
 
-getCursorCapture() {
+getCaretCapture() {
     rule := var.WindowCaretSymbolRule.Get("capture").Get(exeName, "")
     if rule
         return rule.capture
@@ -809,7 +837,7 @@ onTextMonitorChar(ih, char) {
         textMonitorState.buffer := SubStr(textMonitorState.buffer, -50)
 
     for rule in textMonitorState.rules {
-        if RegExMatch(textMonitorState.buffer, rule.regex) {
+        if safeRegexMatch(textMonitorState.buffer, rule.regex) {
             textMonitorState.buffer := ""
             runTriggers([rule.trigger])
             return
@@ -919,6 +947,7 @@ matchSequence(buffer, seq) {
     return true
 }
 
+var._lastCaptureMode := ""
 
 /**
  * @link https://github.com/Tebayaki/AutoHotkeyScripts/blob/main/lib/GetCaretPosEx/GetCaretPosEx.ahk
@@ -927,22 +956,36 @@ GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
     try DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr")
 
     hwnd := 0
-    captureModeChain := getCursorCapture()
+    captureModeChain := getCaretCapture()
     modes := StrSplit(captureModeChain, ">")
-    for mode in modes {
-        if _trySingleCaptureMode(mode)
+    if modes.Length {
+        for mode in modes {
+            if _trySingleCaptureMode(mode) {
+                var._lastCaptureMode := mode
+                return 1
+            }
+        }
+    } else {
+        if getCaretPosFromGui(&hwnd) {
+            var._lastCaptureMode := "GUI"
             return 1
+        }
+        if getCaretPosFromHook(0) {
+            var._lastCaptureMode := "HOOK"
+            return 1
+        }
+        if getCaretPosFromUIA() {
+            var._lastCaptureMode := "UIA"
+            return 1
+        }
+        if !hwnd
+            hwnd := getHwnd()
+        if getCaretPosFromMSAA() {
+            var._lastCaptureMode := "MSAA"
+            return 1
+        }
     }
-    if getCaretPosFromGui(&hwnd)
-        return 1
-    if getCaretPosFromHook(0)
-        return 1
-    if getCaretPosFromUIA()
-        return 1
-    if !hwnd
-        hwnd := getHwnd()
-    if getCaretPosFromMSAA()
-        return 1
+    var._lastCaptureMode := ""
     return 0
 
     _trySingleCaptureMode(mode) {

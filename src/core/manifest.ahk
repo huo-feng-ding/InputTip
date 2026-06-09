@@ -3,14 +3,14 @@
 #Requires AutoHotkey v2.0
 
 if (A_IsCompiled) {
-    currentVersion := "3.5.3"
+    currentVersion := "3.6.0"
     versionType := "exe"
 } else {
-    currentVersion := "3.5.3"
+    currentVersion := "3.6.0"
     versionType := "zip"
 }
 
-;@AHK2Exe-SetVersion 3.5.3
+;@AHK2Exe-SetVersion 3.6.0
 ;@AHK2Exe-SetLanguage 0x0804
 ;@Ahk2Exe-SetMainIcon temp\icon\default-app.ico
 ;@Ahk2Exe-SetCopyright Copyright (c) 2023-present abgox
@@ -72,21 +72,23 @@ baseUrl := [
 ]
 
 
-stateList := ["CN", "EN", "Caps", "JP", "KR"]
+stateList := ["CN", "EN", "Caps", "US", "JP", "KR"]
 stateVal := {
     CN: {
-        id: 1,
         color: "0xFF0000",
         colorText: "red",
     },
     EN: {
-        id: 0,
         color: "0x0000FF",
         colorText: "blue",
     },
     Caps: {
         color: "0x008000",
         colorText: "green",
+    },
+    US: {
+        color: "0x0000FF",
+        colorText: "blue",
     },
     JP: {
         color: "0xCCCC00",

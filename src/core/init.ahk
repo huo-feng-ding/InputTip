@@ -309,14 +309,12 @@ if A_IsCompiled {
 checkIni() {
     try {
         oldVersion := IniRead(configFile, "Settings", "version-" versionType)
-        if (currentVersion != oldVersion) {
+        if currentVersion != oldVersion
             writeIni("version-" versionType, currentVersion)
-        }
     } catch {
         showGui(createUniqueGui(cursorGuideGui))
         cursorGuideGui(info) {
-            g := Gui(, "InputTip - " i18n("init.title"))
-            g.SetFont(fontOpt*)
+            g := createGuiOpt(i18n("init.title"))
             for i, v in i18n("init.cursor", 1) {
                 if (i == 1) {
                     g.AddLink(, v)
@@ -818,8 +816,9 @@ migrateConfig2() {
 
     migrateHotkey(key, trigger) {
         if val := IniRead(configFile, "Settings", key, "") {
-            IniWrite(val, configFile, "Hotkey.Rule." returnTime(), "hotkey")
-            IniWrite(trigger, configFile, "Hotkey.Rule." returnTime(), "trigger")
+            id := FormatTime(A_Now, "yyyy-MM-dd") "." Format("{:05x}", Random(0, 1048575))
+            IniWrite(val, configFile, "Hotkey.Rule." id, "hotkey")
+            IniWrite(trigger, configFile, "Hotkey.Rule." id, "trigger")
         }
         try IniDelete(configFile, "Settings", key)
     }

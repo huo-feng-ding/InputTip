@@ -5,7 +5,7 @@ updateSymbol("cursor")
 
 updateSymbol(prefix) {
     symbolGui(title, info) {
-        return createGuiOpt(title, , "-Caption AlwaysOnTop ToolWindow LastFound E0x20", , 0)
+        return createGuiOpt(title, , "-Caption AlwaysOnTop ToolWindow E0x20", , 0)
     }
     switch var.%prefix "SymbolType"% {
         case 1:
@@ -35,12 +35,10 @@ updateSymbol(prefix) {
                 if (color) {
                     var.%key% := _ := createUniqueGui(symbolGui.Bind(key), var.%prefix "SymbolShapeCornerPreference"%)
                     try _.BackColor := color
-                    _.Opt("-LastFound")
                     switch var.%prefix "SymbolShapeEdgeStyle"% {
-                        case 1: _.Opt("-LastFound +e0x00000001")
-                        case 2: _.Opt("-LastFound +e0x00000200")
-                        case 3: _.Opt("-LastFound +e0x00020000")
-                        default: _.Opt("-LastFound")
+                        case 1: _.Opt("e0x00000001")
+                        case 2: _.Opt("e0x00000200")
+                        case 3: _.Opt("e0x00020000")
                     }
                 } else {
                     try var.%key%.Destroy()
@@ -64,10 +62,9 @@ updateSymbol(prefix) {
                     }
                     _.AddText(, text)
                     switch var.%prefix "SymbolTextEdgeStyle"% {
-                        case 1: _.Opt("-LastFound +e0x00000001")
-                        case 2: _.Opt("-LastFound +e0x00000200")
-                        case 3: _.Opt("-LastFound +e0x00020000")
-                        default: _.Opt("-LastFound")
+                        case 1: _.Opt("e0x00000001")
+                        case 2: _.Opt("e0x00000200")
+                        case 3: _.Opt("e0x00020000")
                     }
                 } else {
                     try var.%key%.Destroy()
@@ -124,7 +121,7 @@ showCaretSymbol(state, left, top, right, bottom) {
     s := isWhichScreen()
     scale := getMonitorScale(s)
 
-    if (false && InStr(getCursorCapture(), "JAB")) {
+    if (InStr(getCaretCapture(), "JAB") && var._lastCaptureMode == "JAB") {
         ; 对于 JAB 应用，垂直偏移量参考原点无法使用上方，上方坐标有误
         offsetY := top + bottom
     } else {
@@ -469,7 +466,7 @@ e_symbolConfig(prefix, *) {
                         addBtn()
                         tab.UseTab(2)
                         g.AddLink("Section", getDocsLink("tip/symbol-caret/picture"))
-                        gc.%prefix "PreviewSymbolPicture" page% := previewCtrl
+                        gc.%prefix "PreviewSymbolPicture" page% := prefix == "caret" ? g.AddEdit("yp cGray", i18n("symbol.preview")) : { Focus: (*) => "" }
                     }
                     renderGroupBox(g, state, "xs", "h120 w" bw)
                     _ := prefix "SymbolPictureOffsetX"
@@ -481,14 +478,14 @@ e_symbolConfig(prefix, *) {
                     _ := prefix "SymbolPictureHeight"
                     renderEditLabel(g, _ state, "Number Limit3" editOpt, _, "yp")
 
-                    _ := g.AddDropDownList("xs+20 yp+40 AltSubmit r9 w" bw - 40, picList)
+                    _ := g.AddDropDownList("xs+20 yp+40 r9 w" bw - 40, picList)
                     key := prefix "SymbolPicturePath" state
                     _.key := key
                     _.page := page
                     try _.Text := var.%key%
                     _.OnEvent("Change", (ctrl, *) => changeConfig(ctrl.key, ctrl.Text, , (*) => gc.%prefix "PreviewSymbolPicture" ctrl.page%.Focus()))
 
-                    if i > 4
+                    if i > 5
                         addBtn()
                 }
                 addBtn() {
@@ -516,7 +513,7 @@ e_symbolConfig(prefix, *) {
                 g.w := w := info.w
                 g.bw := bw := w - g.MarginX * 2
 
-                previewCtrl := prefix == "caret" ? g.AddEdit("yp cGray", i18n("symbol.preview")) : { Focus: (*) => "" }
+                previewCtrl := prefix == "caret" ? g.AddEdit("xs cGray", i18n("symbol.preview")) : { Focus: (*) => "" }
 
                 gc.%prefix "PreviewSymbolShape"% := previewCtrl
 

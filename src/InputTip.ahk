@@ -8,7 +8,7 @@
 
 OnMessage(0x404, (wParam, lParam, *) => lParam == 0x202 ? toggleApp() : "")
 
-if (A_IsCompiled) {
+if A_IsCompiled {
     favicon := A_ScriptFullPath
 } else {
     favicon := A_ScriptDir "\temp\icon\default-app.ico"
@@ -25,7 +25,7 @@ runUpdater() {
         try Run("`"" A_Temp "\abgox.InputTip.updater.exe`" " keyCount " " ProcessExist() " `"" A_ScriptFullPath "`"")
         return
     }
-    try Run('"' A_AhkPath '" "' A_ScriptDir '\InputTip.updater.ahk" ' keyCount " " ProcessExist(), , "Hide")
+    try Run("`"" A_AhkPath "`" `"" A_ScriptDir "\InputTip.updater.ahk`" " keyCount " " ProcessExist())
 }
 
 setTrayIcon(var.iconRunning)
@@ -33,7 +33,6 @@ setTrayIcon(var.iconRunning)
 checkIni()
 
 var._shiftAloneFlags := Map()
-var._shiftWildcardRegistered := false
 var._lastHotkeyList := []
 var._lastWindowHotkeyList := []
 
@@ -41,7 +40,7 @@ registerHotkey()
 
 setHotkeyTrigger(key, trigger) {
     isShiftUp := RegExMatch(key, "i)~?(L|R)?Shift\s+Up")
-    if (isShiftUp) {
+    if isShiftUp {
         downKey := Trim(RegExReplace(key, "i)\s*Up$", ""))
         downKey := LTrim(downKey, "~")
         flagKey := downKey
@@ -60,8 +59,7 @@ setShiftAloneFlag(flagKey, *) {
 }
 
 checkAndRunShiftTrigger(flagKey, trigger, *) {
-    priorKey := A_PriorKey
-    if (var._shiftAloneFlags[flagKey] && priorKey = flagKey) {
+    if var._shiftAloneFlags[flagKey] && A_PriorKey = flagKey {
         var._shiftAloneFlags[flagKey] := false
         runTriggers([trigger])
     } else {
@@ -86,9 +84,9 @@ registerHotkey() {
 }
 
 updateWindowHotkey() {
-    if (var._paused) {
+    if var._paused
         return
-    }
+
     if var._lastWindowHotkeyList.Length {
         for hk in var._lastWindowHotkeyList {
             try Hotkey(hk, "Off")
@@ -153,7 +151,7 @@ isResumeTrigger(hk, exeName := "", type := "global") {
     if (type == "global") {
         for rule in var.hotkeyRule.Get("", []) {
             cleanRuleHk := RegExReplace(rule.hotkey, "i)^~|(?:\s+Up)$", "")
-            if (cleanHk == cleanRuleHk && rule.trigger == "resume")
+            if (cleanHk == cleanRuleHk && (rule.trigger == "resume" || rule.trigger == "toggle"))
                 return true
         }
     } else if (type == "window" && exeName != "") {
@@ -161,7 +159,7 @@ isResumeTrigger(hk, exeName := "", type := "global") {
         for ruleList in ruleLists {
             for rule in ruleList {
                 cleanRuleHk := RegExReplace(rule.hotkey, "i)^~|(?:\s+Up)$", "")
-                if (cleanHk == cleanRuleHk && rule.trigger == "resume")
+                if (cleanHk == cleanRuleHk && (rule.trigger == "resume" || rule.trigger == "toggle"))
                     return true
             }
         }
@@ -199,7 +197,7 @@ returnCanShowSymbol(&left, &top, &right, &bottom) {
         rules := []
         previewTimes := Map()
         for key, item in var._previewOffsetMap {
-            if RegExMatch(exeName, key) {
+            if safeRegexMatch(exeName, key) {
                 previewTimes.Set(item.time, 1)
                 rules.Push(item)
             }
