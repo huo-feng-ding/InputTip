@@ -263,7 +263,7 @@ createProcessMenuGui(meta, *) {
                 sectionList[num] := fn_process
                 fn_process() {
                     renderGroupBox(g, "match.process", groupLayout " h70 w" bw)
-                    _ := g.AddEdit(opt, "")
+                    _ := g.AddEdit(opt " r1", "")
                     try _.Text := colValue.process
                     colValue.process := _.Text
                     _.OnEvent("Change", (i, *) => (colValue.process := i.Text, updateProcessState(i.Text)))
@@ -363,7 +363,7 @@ createProcessMenuGui(meta, *) {
                 sectionList[num] := fn_class
                 fn_class() {
                     renderGroupBox(g, "match.class", "xs h70 w" bw)
-                    var._classEditCtrl := _ := g.AddEdit(opt)
+                    var._classEditCtrl := _ := g.AddEdit(opt " r1")
                     try _.Text := colValue.class
                     _.OnEvent("Change", (i, *) => colValue.class := i.Text)
                 }
@@ -374,7 +374,7 @@ createProcessMenuGui(meta, *) {
                 sectionList[num] := fn_title
                 fn_title() {
                     renderGroupBox(g, "match.title", "xs h70 w" bw)
-                    var._titleEditCtrl := _ := g.AddEdit(opt)
+                    var._titleEditCtrl := _ := g.AddEdit(opt " r1")
                     try _.Text := colValue.title
                     _.OnEvent("Change", (i, *) => colValue.title := i.Text)
                 }
@@ -385,6 +385,7 @@ createProcessMenuGui(meta, *) {
                 sectionList[num] := fn_capture
                 fn_capture() {
                     captureList := ["", "", "", "", "", "", "", ""]
+                    captureOffsetList := ["", "", "", "", "", "", "", ""]
                     modeNameList := ["GUI", "UIA", "HOOK", "HOOK_DLL", "MSAA", "WPF", "ACC"]
                     if var.symbolJABActive
                         modeNameList.Push("JAB")
@@ -403,7 +404,26 @@ createProcessMenuGui(meta, *) {
                         _.num := i
                     }
 
+                    renderGroupBox(g, "symbolCaretCapture.offset", "xs h120 w" bw)
+                    for i, v in captureOffsetList {
+                        if i == 1 || i == 5 {
+                            _opt := "xs+20 yp+40"
+                        } else {
+                            _opt := "yp"
+                            g.AddText("yp", ">")
+                        }
+                        _ := g.AddEdit(_opt " r1 w" bw / 5 - 5)
+                        try _.Text := StrSplit(colValue.captureOffset, ">")[i]
+                        captureOffsetList[i] := _.Text
+                        _.num := i
+                        _.OnEvent("Change", (ctrl, *) => (
+                            val := ctrl.Text,
+                            RegExMatch(val, "^-?\d+/-?\d+$") || val == "" ? (captureOffsetList[ctrl.num] := ctrl.Text, colValue.captureOffset := arrJoin(captureOffsetList, ">", 1)) : ""
+                        ))
+                    }
+
                     colValue.capture := arrJoin(captureList, ">", 1)
+                    colValue.captureOffset := arrJoin(captureOffsetList, ">", 1)
 
                     for ctrl in ddlControls
                         (ctrl == "") ? 0 : ctrl.OnEvent("Change", e_changeDDL)
@@ -469,14 +489,14 @@ createProcessMenuGui(meta, *) {
                         g.SetFont("Bold")
                         g.AddText("xs", i18n("offset.offset_x"))
                         g.SetFont("Norm")
-                        _ := g.AddEdit("yp Limit5")
+                        _ := g.AddEdit("yp Limit5 r1")
                         _.Value := x
                         _.OnEvent("Change", e_changeOffset.Bind(n, "x"))
 
                         g.SetFont("Bold")
                         g.AddText("xs", i18n("offset.offset_y"))
                         g.SetFont("Norm")
-                        _ := g.AddEdit("yp Limit5")
+                        _ := g.AddEdit("yp Limit5 r1")
                         _.Value := y
                         _.OnEvent("Change", e_changeOffset.Bind(n, "y"))
                     }
@@ -512,7 +532,7 @@ createProcessMenuGui(meta, *) {
                 sectionList.InsertAt(4, fn_content)
                 fn_content() {
                     var._tthGroupCtrl := renderGroupBox(g, "match.textMonitorOrHotkeyMonitorOrIdleTimer", "xs h70 w" bw)
-                    var._tthEditCtrl := _ := g.AddEdit(opt)
+                    var._tthEditCtrl := _ := g.AddEdit(opt " r1")
 
                     switch colValue.condition {
                         case i18n("condition.idleTimer"):

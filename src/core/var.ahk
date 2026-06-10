@@ -180,7 +180,7 @@ for v in stateList {
     defaultSymbolMap.Set("default-triangle-" stateVal.%v%.colorText ".png", 1)
 }
 
-windowRuleKeys := ["process", "condition", "class", "trigger", "title", "offset", "capture", "hotkey", "idleTimer", "textMonitor", "hotkeyMonitor"]
+windowRuleKeys := ["process", "condition", "class", "trigger", "title", "offset", "capture", "captureOffset", "hotkey", "idleTimer", "textMonitor", "hotkeyMonitor"]
 
 conditionKeyList := ["title", "class", "classAndTitle"]
 windowConditionKeyList := ["textMonitor", "hotkeyMonitor", "idleTimer", conditionKeyList*]
@@ -250,7 +250,7 @@ runTriggers(triggers, *) {
         }
     }
     _switchState(state, key) {
-        switchKeyboard("CN", 1), Sleep(50), switchState(state, key)
+        switchKeyboard("CN", 1), SetTimer(switchState.Bind(state, key), -20)
     }
 }
 
@@ -444,6 +444,8 @@ parseWindowRule() {
         }
     }
 
+    Critical("On")
+
     var.WindowRule := newWindowRule
     var.WindowOverlayRule := newWindowOverlayRule
     var.WindowBorderRule := newWindowBorderRule
@@ -460,6 +462,8 @@ parseWindowRule() {
     var._showStateCode := 0
 
     var._matchCache.Clear()
+
+    Critical("Off")
 }
 getMatchingRuleLists(exeName, triggerMap, hotkey := 0) {
     cacheKey := exeName . "|" . ObjPtr(triggerMap)
@@ -512,8 +516,6 @@ matchWindowRules(exeName, exeTitle, exeClass, triggerMap) {
     if ruleLists.Length == 0
         return unconditionalTriggers
 
-    triggers := Map()
-
     for ruleList in ruleLists {
         for rule in ruleList {
             if !rule.trigger
@@ -524,14 +526,11 @@ matchWindowRules(exeName, exeTitle, exeClass, triggerMap) {
             if !isMatch
                 continue
 
-            if !triggers.Has(rule.trigger) {
-                if rule.condition {
-                    conditionalTriggers.Push(rule)
-                } else {
-                    if hasProcessChange
-                        unconditionalTriggers.Push(rule)
-                }
-                triggers.Set(rule.trigger, 1)
+            if rule.condition {
+                conditionalTriggers.Push(rule)
+            } else {
+                if hasProcessChange
+                    unconditionalTriggers.Push(rule)
             }
         }
     }
@@ -575,10 +574,16 @@ updateScreenOffset(prefix) {
 }
 
 getCaretCapture() {
-    rule := var.WindowCaretSymbolRule.Get("capture").Get(exeName, "")
-    if rule
-        return rule.capture
-    return ""
+    captureMap := var.WindowCaretSymbolRule["capture"]
+    if captureMap.Has(exeName)
+        return captureMap[exeName]
+    for key, rule in captureMap {
+        if key == ""
+            continue
+        if RegExMatch(exeName, key)
+            return rule
+    }
+    return { capture: "", captureOffset: "" }
 }
 
 getScreenInfo() {
@@ -956,7 +961,7 @@ GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
     try DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr")
 
     hwnd := 0
-    captureModeChain := getCaretCapture()
+    captureModeChain := getCaretCapture().capture
     modes := StrSplit(captureModeChain, ">")
     if modes.Length {
         for mode in modes {
