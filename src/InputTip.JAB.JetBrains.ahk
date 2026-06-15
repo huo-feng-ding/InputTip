@@ -48,17 +48,25 @@ returnCanShowSymbol(&left, &top, &right, &bottom) {
 
     s := isWhichScreen()
     if s.num {
-        scale := getMonitorScale(s)
+        scale := s.scale
         try {
             offset := symbolScreenOffset.caret.%s.num%
             left += toPhysical(offset.x, scale)
+            if var.caretSymbolOriginY == "below"
+                bottom += toPhysical(offset.y, scale)
+            else
+                top += toPhysical(offset.y, scale)
+        }
+
+        try {
             if captureOffset := captureOffsetMap.Get(var._lastCaptureMode, { x: 0, y: 0 })
                 left += toPhysical(captureOffset.x, scale)
             if var.caretSymbolOriginY == "below"
-                bottom += toPhysical(offset.y, scale) + toPhysical(captureOffset.y, scale)
+                bottom += toPhysical(captureOffset.y, scale)
             else
-                top += toPhysical(offset.y, scale) + toPhysical(captureOffset.y, scale)
+                top += toPhysical(captureOffset.y, scale)
         }
+
         rules := []
         for ruleList in getMatchingRuleLists(exeName, var.WindowCaretSymbolRule["offset"])
             rules.Push(ruleList*)
@@ -88,11 +96,9 @@ GetCaretPosFromJAB(&X?, &Y?, &W?, &H?) {
     if JAB && (hWnd := WinExist("A")) && DllCall(JAB.module "\isJavaWindow", "ptr", hWnd, "CDecl Int") {
         if JAB.firstRun
             Sleep(200), JAB.firstRun := 0
-        prevThreadDpiAwarenessContext := DllCall("SetThreadDpiAwarenessContext", "ptr", -2, "ptr")
         DllCall(JAB.module "\getAccessibleContextWithFocus", "ptr", hWnd, "Int*", &vmID := 0, JAB.acType "*", &ac := 0, "Cdecl Int") "`n"
         DllCall(JAB.module "\getCaretLocation", "Int", vmID, JAB.acType, ac, "Ptr", Info := Buffer(16, 0), "Int", 0, "Cdecl Int")
         DllCall(JAB.module "\releaseJavaObject", "Int", vmID, JAB.acType, ac, "CDecl")
-        DllCall("SetThreadDpiAwarenessContext", "ptr", prevThreadDpiAwarenessContext, "ptr")
         X := NumGet(Info, 0, "Int"), Y := NumGet(Info, 4, "Int"), W := NumGet(Info, 8, "Int"), H := NumGet(Info, 12, "Int")
         hMonitor := DllCall("MonitorFromWindow", "ptr", hWnd, "int", 2, "ptr") ; MONITOR_DEFAULTTONEAREST
         DllCall("Shcore.dll\GetDpiForMonitor", "ptr", hMonitor, "int", 0, "uint*", &dpiX := 0, "uint*", &dpiY := 0)

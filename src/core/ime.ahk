@@ -14,10 +14,16 @@ class IME {
         "JP", { langId: 0x11, klid: 0x0411, convMode: 9 },
         "KR", { langId: 0x12, klid: 0x0412, convMode: 0 },
     )
-    static OpenStateMap := Map(
-        1, "CN",
-        0, "EN",
-    )
+
+    static GeneralStrategy := {
+        strategy: 0, ; 0(复合兜底) 1(纯状态码) 2(纯转换码)
+        lastHwnd: 0,
+        lastOpened: -1,
+        lastConvMode: -1,
+        isNonBinaryIME: 0,
+        cnValue: 0,
+        enValue: 0
+    }
 
     /**
      * 获取当前输入法输入模式
@@ -51,11 +57,58 @@ class IME {
             opened := this.GetOpenStatus(hwnd)
             convMode := this.GetConversionMode(hwnd)
 
-            if convMode & 0x100 ; IME_CMODE_NOCONVERSION
-                opened := false
-
             if var.inputMethodDetectionMode == "general" {
-                state := this.OpenStateMap.Get(opened && (convMode & 3) ? 1 : 0, lastState)
+                gs := this.GeneralStrategy
+
+                if gs.lastHwnd != hwnd {
+                    gs.lastHwnd := hwnd
+                    gs.lastOpened := opened
+                    gs.lastConvMode := convMode
+                    goto SKIP_STRATEGY_LEARNING
+                }
+
+                if opened != gs.lastOpened || convMode != gs.lastConvMode {
+                    openedChanged := opened != gs.lastOpened
+                    convModeChanged := convMode != gs.lastConvMode
+
+                    if openedChanged {
+                        if gs.isNonBinaryIME && gs.strategy == 2
+                            gs.isNonBinaryIME := 0
+                        gs.strategy := 1
+                        if opened > 1 || gs.lastOpened > 1
+                            gs.isNonBinaryIME := 1, gs.cnValue := Max(opened, gs.lastOpened), gs.enValue := Min(opened, gs.lastOpened)
+                        else
+                            gs.isNonBinaryIME := 0
+                    }
+                    else if convModeChanged {
+                        if convMode & 1 != gs.lastConvMode & 1 {
+                            if gs.isNonBinaryIME && gs.strategy == 1
+                                gs.isNonBinaryIME := 0
+                            gs.strategy := 2
+                        }
+                    }
+                    gs.lastOpened := opened
+                    gs.lastConvMode := convMode
+                }
+
+                SKIP_STRATEGY_LEARNING:
+                switch gs.strategy {
+                    case 1:
+                        state := gs.isNonBinaryIME ? (opened == gs.cnValue ? "CN" : "EN") : (opened ? "CN" : "EN")
+                    case 2:
+                        state := convMode & 1 ? "CN" : "EN"
+                    default:
+                        if gs.isNonBinaryIME
+                            state := opened == gs.cnValue ? "CN" : "EN"
+                        else if convMode == 0
+                            state := opened ? "CN" : "EN"
+                        else if opened == 0
+                            state := "EN"
+                        else if convMode & 1
+                            state := "CN"
+                        else
+                            state := "EN"
+                }
                 lastState := state
                 return state
             }
@@ -97,24 +150,59 @@ class IME {
     /**
      * 切换到指定的输入法状态/布局
      * @param {"CN"|"EN"|"US"|"JP"|"KR"} targetState
+     * @param {0|1} active
      */
-    static SetInputMode(targetState, hwnd := this.GetFocusedWindow()) {
-        if targetState == "US" || targetState == "JP" || targetState == "KR" {
-            this.SwitchKeyboard(targetState)
-            if targetState != "US"
-                Sleep(50), this.SetOpenStatus(true, hwnd)
-            return
+    static SetInputMode(targetState, opened := "", conversionMode := "", hwnd := this.GetFocusedWindow()) {
+        switch targetState {
+            case "US":
+                this.SwitchKeyboard(targetState)
+                return
+            case "JP", "KR":
+                this.SwitchKeyboard(targetState)
+                if opened !== "" || conversionMode !== "" {
+                    Sleep(50)
+                    if opened !== ""
+                        this.SetOpenStatus(opened, hwnd)
+                    if conversionMode !== ""
+                        this.SetConversionMode(conversionMode, hwnd)
+                }
+                return
         }
         this.SwitchKeyboard("CN")
-        switch targetState {
-            case "CN": this.SetOpenStatus(true, hwnd), this.SetConversionMode(this.LangMap["CN"].convMode, hwnd)
-            case "EN": this.SetOpenStatus(false, hwnd)
-        }
-    }
 
-    static ToggleInputMode(hwnd := this.GetFocusedWindow()) {
-        current := this.GetInputModeText(hwnd)
-        this.SetInputMode((current == "US" || current == "EN") ? "CN" : "EN", hwnd)
+        if var.inputMethodDetectionMode != "general" {
+            switch targetState {
+                case "CN": this.SetOpenStatus(true, hwnd), this.SetConversionMode(this.LangMap["CN"].convMode, hwnd)
+                case "EN": this.SetOpenStatus(false, hwnd)
+            }
+            return
+        }
+
+        ; CN/EN
+        gs := this.GeneralStrategy
+        switch gs.strategy {
+            case 1:
+                if targetState == "CN"
+                    s := gs.isNonBinaryIME ? gs.cnValue : 1
+                else
+                    s := gs.isNonBinaryIME ? gs.enValue : 0
+                this.SetOpenStatus(s, hwnd)
+            case 2:
+                this.SetConversionMode(targetState == "CN" ? this.LangMap["CN"].convMode : 0, hwnd)
+            default:
+                if gs.isNonBinaryIME {
+                    this.SetOpenStatus(targetState == "CN" ? gs.cnValue : gs.enValue, hwnd)
+                } else {
+                    if targetState == "CN"
+                        this.SetOpenStatus(true, hwnd), this.SetConversionMode(this.LangMap["CN"].convMode, hwnd)
+                    else
+                        this.SetOpenStatus(false, hwnd), this.SetConversionMode(0, hwnd)
+                }
+        }
+
+        Sleep(20)
+        gs.lastOpened := this.GetOpenStatus(hwnd)
+        gs.lastConvMode := this.GetConversionMode(hwnd)
     }
 
     static GetOpenStatus(hwnd := this.GetFocusedWindow()) {
@@ -211,14 +299,15 @@ class IME {
 /**
  * 切换键盘布局
  * @param {"CN"|"US"|"JP"|"KR"} state 要切换的键盘布局
- * @param ignoreKeepCaps
+ * @param {""|0|1} active
+ * @param {0|1} ignoreKeepCaps
  */
-switchKeyboard(state, ignoreKeepCaps := 0) {
+switchKeyboard(state, opened := "", conversionMode := "", ignoreKeepCaps := 0) {
     if matchWindowRules(exeName, exeTitle, exeClass, var.WindowRule["ignoreKeyboardSwitch"]).Length
         return 0
     if !ignoreKeepCaps && IME.GetInputModeText() == "Caps" && !var.keepCapsLockWhenKeyboardSwitch
         SendInput("{CapsLock}")
-    return IME.SwitchKeyboard(state)
+    return opened != "" || conversionMode != "" ? IME.SetInputMode(state, opened, conversionMode) : IME.SwitchKeyboard(state)
 }
 
 /**

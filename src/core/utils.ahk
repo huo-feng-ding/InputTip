@@ -91,6 +91,12 @@ returnNumber(value) {
     return Number(numbers[1])
 }
 
+returnMaxTimerNumber(num) {
+    if !IsNumber(num)
+        return 0
+    return Min(num, 4294967295)
+}
+
 
 ; 将 RGB 转换为 Windows 底层认识的 BGR (COLORREF) 格式
 RGBtoBGR(rgb) {
@@ -175,16 +181,6 @@ getWinPhysicalRect(hwnd := 0) {
     w := NumGet(rc, 8, "Int") - x
     h := NumGet(rc, 12, "Int") - y
     return { x: x, y: y, w: w, h: h }
-}
-
-; 获取屏幕的DPI缩放比
-getMonitorScale(screen) {
-    pt := Buffer(8, 0)
-    NumPut("Int", (screen.left + screen.right) // 2, pt, 0)
-    NumPut("Int", (screen.top + screen.bottom) // 2, pt, 4)
-    hMonitor := DllCall("MonitorFromPoint", "Ptr", pt, "Int", 2, "Ptr")
-    DllCall("Shcore\GetDpiForMonitor", "Ptr", hMonitor, "Int", 0, "UInt*", &dpiX := 0, "UInt*", &dpiY := 0)
-    return dpiX / 96
 }
 
 ; 逻辑像素转物理像素

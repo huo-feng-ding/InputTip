@@ -18,10 +18,6 @@ showOverlay(state) {
     if var.%"overlayText" state% == ""
         return
 
-    hideDelay := var.overlayHideDelay
-    if hideDelay == ""
-        hideDelay := 0
-
     Ypos := var.%"overlayOffsetY" state%
     Xpos := var.%"overlayOffsetX" state%
     basePosition := var.%"overlayBasePosition" state%
@@ -34,6 +30,7 @@ showOverlay(state) {
         case 1: overlayAnimation := "fade"
         case 2: overlayAnimation := "slideOverlay"
     }
+    num := isWhichScreen().num
 
     try {
         i := var.screenNum
@@ -41,13 +38,20 @@ showOverlay(state) {
             g := var.%"overlayGui" state i%
             screen := var.screenList[i]
 
-            scale := getMonitorScale(screen)
-            scaledW := toPhysical(g.w, scale)
-            scaledH := toPhysical(g.h, scale)
+            if var.overlayOnlyFocusScreen && num != screen.num {
+                i--
+                continue
+            }
+
+            scale := screen.scale
+            scaledW := g.w
+            scaledH := g.h
             scaledXpos := toPhysical(Xpos, scale)
             scaledYpos := toPhysical(Ypos, scale)
 
-            if InStr(basePosition, "Window") {
+            showOnWindow := 0
+
+            if showOnWindow := InStr(basePosition, "Window") {
                 Left := 0, Top := 0, Right := 0, Bottom := 0
                 WALeft := 0, WATop := 0, WARight := 0, WABottom := 0
             } else {
@@ -125,14 +129,16 @@ showOverlay(state) {
                     x := Left + (Right - Left) / 2 - scaledW / 2
                     y := Top + (Bottom - Top) / 2 - scaledH / 2
             }
-            showGui(g, "AutoSize NA", overlayAnimation, 1, var.overlayTransparent)
+            showGui(g, "AutoSize NA", overlayAnimation, 1, var.%"overlayTransparent" state%)
             setGuiPhysicalPos(g.Hwnd, x + scaledXpos, y + scaledYpos)
 
+            if showOnWindow
+                break
             i--
         }
     }
 
-    SetTimer(RemoveTip, -hideDelay)
+    SetTimer(RemoveTip, -returnMaxTimerNumber(var.overlayHideDelay))
     RemoveTip() {
         try hideOverlay()
     }
@@ -141,9 +147,9 @@ showOverlay(state) {
 updateOverlay() {
     for state in stateList {
         text := var.%"overlayText" state%
-        textFont := var.overlayTextFont
-        textSize := var.overlayTextSize
-        textWeight := var.overlayTextWeight
+        textFont := var.%"overlayTextFont" state%
+        textSize := var.%"overlayTextSize" state%
+        textWeight := var.%"overlayTextWeight" state%
         textColor := var.%"overlayTextColor" state%
         bgColor := var.%"overlayBgColor" state%
 
@@ -186,24 +192,26 @@ e_overlay(*) {
         g.w := w := info.w
         g.bw := bw := w - g.MarginX * 2
 
-        tab := renderTab(g, [i18n("basicConfig"), i18n("basicConfig") 2, i18n("stateStyle"), i18n("stateStyle") 2])
+        ctrlList := []
+
+        tab := renderTab(g, [i18n("basicConfig"), i18n("basicConfig") 2, i18n("stateStyle"), i18n("stateStyle") 2, i18n("stateStyle") 3])
         loseFocusOnTab(tab)
         tab.UseTab(1)
         g.AddLink("Section", getDocsLink("tip/overlay"))
+        renderRadioGroup(g, "overlayActive", [
+            ["yes", 1, (key, value, *) => (changeConfig(key, value), disableCtrl(ctrlList, 0))],
+            ["no", 0, (key, value, *) => (changeConfig(key, value), disableCtrl(ctrlList))]
+        ])
 
-        renderRadioGroup(g, "overlayActive",
-            [
-                ["yes", 1],
-                ["no", 0]
-            ])
-
-        renderEditGroup(g, "overlayHideDelay", "Number Limit5")
-        renderGroupBox(g, "overlayReshowOnChange", , "h80 w" bw)
-        g.AddCheckbox("xs+20 yp+40 Disabled", i18n("overlayReshowOnChange.state")).Value := 1
+        _ := renderEditGroup(g, "overlayHideDelay", "Number Limit5")
+        ctrlList.Push(_.edit)
+        renderGroupBox(g, "overlayReshowOnChange", , "h110 w" bw)
+        g.AddCheckbox("xs+20 yp+50 Disabled", i18n("overlayReshowOnChange.state")).Value := 1
         for v in ["Process", "Title", "Class"] {
             _ := g.AddCheckbox("yp", i18n("overlayReshowOnChange." StrLower(v)))
             _.Value := var.%"overlayReshowOn" v "Change"%
             _.OnEvent("Click", e_change.Bind(v))
+            ctrlList.Push(_)
         }
         e_change(type, ctrl, *) {
             key := "overlayReshowOn" type "Change"
@@ -212,17 +220,19 @@ e_overlay(*) {
             writeIni(key, val)
         }
 
-        renderRadioGroup(g, "overlayShowMode",
+        _ := renderRadioGroup(g, "overlayShowMode",
             [
                 ["blacklist", "blacklist"],
                 ["whitelist", "whitelist"]
             ])
+        ctrlList.Push(_.radios*)
         _w := bw / 2 - g.MarginX / 4
         for v in [
             ["hide", "xs", "blacklistBtn"],
             ["show", "yp", "whitelistBtn"],
         ] {
-            g.AddButton(v[2] " w" _w, i18n(v[3])).OnEvent("Click",
+            _ := g.AddButton(v[2] " w" _w, i18n(v[3]))
+            _.OnEvent("Click",
                 createProcessMenuGui.Bind({
                     title: i18n("overlay") " - " i18n(v[3]),
                     tab: [i18n(v[3])],
@@ -233,36 +243,36 @@ e_overlay(*) {
                     conditions: conditionKeyList
                 })
             )
+            ctrlList.Push(_)
         }
 
         tab.UseTab(2)
         g.AddLink("Section", getDocsLink("tip/overlay"))
-        renderGroupBox(g, "overlayBaseStyle", , "h80 w" bw)
-        renderEditLabel(g, "overlayTextSize", "Number Limit2 w" bw / 8)
-        renderEditLabel(g, "overlayTextWeight", "Number Limit3 w" bw / 8, , "yp")
-        renderEditLabel(g, "overlayTransparent", "Number Limit3 w" bw / 8, , "yp")
-        renderDropDownListGroup(g, "overlayTextFont", fontList)
-        renderRadioGroup(g, "overlayAnimation",
+        _ := renderRadioGroup(g, "overlayOnlyFocusScreen", [["yes", 1], ["no", 0]])
+        ctrlList.Push(_.radios*)
+        _ := renderRadioGroup(g, "overlayAnimation",
             [
                 ["none", 0],
                 ["animation.fade", 1],
                 ["animation.slide", 2],
             ])
-
-        renderRadioGroup(g, "overlayCornerPreference",
+        ctrlList.Push(_.radios*)
+        _ := renderRadioGroup(g, "overlayCornerPreference",
             [
                 ["none", 0],
                 ["cornerPreference.sharp", 1],
                 ["cornerPreference.round", 2],
                 ["cornerPreference.roundSmall", 3]
             ])
-        renderRadioGroup(g, "overlayEdgeStyle",
+        ctrlList.Push(_.radios*)
+        _ := renderRadioGroup(g, "overlayEdgeStyle",
             [
                 ["none", 0],
                 ["edgeStyle.modal", 1],
                 ["edgeStyle.client", 2],
                 ["edgeStyle.static", 3]
             ])
+        ctrlList.Push(_.radios*)
 
         posTextMap := Map()  ; text -> value
         posValueMap := Map() ; value -> text
@@ -278,26 +288,45 @@ e_overlay(*) {
             posList[i] := text
         }
         for i, v in stateList {
-            if (Mod(i - 1, 3) == 0) {
-                tab.UseTab(((i - 1) // 3) + 3)
+            if Mod(i - 1, 2) == 0 {
+                tab.UseTab(((i - 1) // 2) + 3)
                 g.AddLink("Section", getDocsLink("tip/overlay"))
             }
 
-            renderGroupBox(g, v, , "h120 w" bw)
-            renderEditLabel(g, "overlayText" v, "w" bw / 3, "overlayText")
-            renderEditLabel(g, "overlayOffsetX" v, "Limit5 w" bw / 10, "overlayOffsetX", "yp")
-            renderColorPicker(g, "overlayTextColor" v, "overlayTextColor")
+            renderGroupBox(g, v, , "h280 w" bw)
+            _ := renderEditLabel(g, "overlayText" v, "w" bw / 3, "overlayText")
+            ctrlList.Push(_.edit)
+            _ := renderEditLabel(g, "overlayOffsetX" v, "Limit5 w" bw / 10, "overlayOffsetX", "yp")
+            ctrlList.Push(_.edit)
+            _ := renderColorPicker(g, "overlayTextColor" v, "overlayTextColor")
+            ctrlList.Push(_.picker)
 
-            g.AddText("xs+20 yp+40", i18n("overlayBasePosition"))
+            g.AddText("xs+20 yp+55", i18n("overlayBasePosition"))
             _ := g.AddDropDownList("yp r9 w" bw / 3, posList)
             try _.Text := posValueMap.Get(var.%"overlayBasePosition" v%)
             _.state := v
             _.OnEvent("Change", (i, *) => changeConfig("overlayBasePosition" i.state, posTextMap.Get(i.Text), 1))
+            ctrlList.Push(_)
+            SuppressControlWheel(_.Hwnd)
 
-            renderEditLabel(g, "overlayOffsetY" v, "Limit5 w" bw / 10, "overlayOffsetY", "yp")
-            renderColorPicker(g, "overlayBgColor" v, "overlayBgColor")
+            _ := renderEditLabel(g, "overlayOffsetY" v, "Limit5 w" bw / 10, "overlayOffsetY", "yp")
+            ctrlList.Push(_.edit)
+            _ := renderColorPicker(g, "overlayBgColor" v, "overlayBgColor")
+            ctrlList.Push(_.picker)
 
+            renderText(g, "overlayTextFont", "xs+20 yp+55", "")
+            _ := renderDropDownList(g, "overlayTextFont" v, fontList, "yp", "w" bw / 1.2)
+            ctrlList.Push(_)
+            _ := renderEditLabel(g, "overlayTextSize" v, "Number Limit2 w" bw / 3, "overlayTextSize", "xs+20 yp+55")
+            ctrlList.Push(_.edit)
+            _ := renderEditLabel(g, "overlayTextWeight" v, "Number Limit3 w" bw / 10, "overlayTextWeight", "yp")
+            ctrlList.Push(_.edit)
+            _ := renderEditLabel(g, "overlayTransparent" v, "Number Limit3 w" bw / 10, "overlayTransparent", "yp")
+            ctrlList.Push(_.edit)
         }
+
+        if !var.overlayActive
+            disableCtrl(ctrlList)
         return g
     }
 }

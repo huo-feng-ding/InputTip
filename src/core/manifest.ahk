@@ -3,18 +3,18 @@
 #Requires AutoHotkey v2.0
 
 if (A_IsCompiled) {
-    currentVersion := "3.6.1"
+    currentVersion := "3.6.5"
     versionType := "exe"
 } else {
-    currentVersion := "3.6.1"
+    currentVersion := "3.6.5"
     versionType := "zip"
 }
 
-;@AHK2Exe-SetVersion 3.6.1
+;@AHK2Exe-SetVersion 3.6.5
 ;@AHK2Exe-SetLanguage 0x0804
 ;@Ahk2Exe-SetMainIcon temp\icon\default-app.ico
 ;@Ahk2Exe-SetCopyright Copyright (c) 2023-present abgox
-;@AHK2Exe-SetDescription 输入法状态管理: 实时提示 + 状态切换
+;@AHK2Exe-SetDescription 规则驱动的输入法状态管理器
 #SingleInstance Force
 #Warn All, Off
 
@@ -29,6 +29,7 @@ SetStoreCapsLockMode(0)
 OnError((*) => 0)
 
 isJAB := 0
+try DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr") ; -4 (DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
 OnMessage(0x007E, (*) => SetTimer(updateScreenInfo, -500))
 updateScreenInfo() {
     try {

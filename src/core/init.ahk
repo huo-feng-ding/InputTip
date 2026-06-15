@@ -352,7 +352,7 @@ checkIni() {
         showOverlayGuide() {
             showGui(createUniqueGui(overlayGuideGui))
             overlayGuideGui(info) {
-                g := Gui(, "InputTip - " i18n("init.title"))
+                g := Gui("-DPIScale", "InputTip - " i18n("init.title"))
                 g.SetFont(fontOpt*)
                 for i, v in i18n("init.overlay", 1) {
                     if (i == 1) {
@@ -395,7 +395,7 @@ checkIni() {
         showDonateGui() {
             showGui(createUniqueGui(donateGui))
             donateGui(info) {
-                g := Gui(, "InputTip - " i18n("init.title"))
+                g := Gui("-DPIScale", "InputTip - " i18n("init.title"))
                 g.SetFont(fontOpt*)
                 for i, v in i18n("init.donate", 1) {
                     if (i <= 2) {
@@ -642,6 +642,25 @@ migrateConfig2() {
         if v.Length == 3
             param.Push(v[3])
         renameConfigKey(param*)
+    }
+
+    _list := [
+        ["overlayTextSize", 16],
+        ["overlayTextWeight", 700],
+        ["overlayTransparent", 255],
+    ]
+
+    for v in [["SymbolTextFont", "Microsoft YaHei"], ["SymbolTextWeight", 700], ["SymbolTextTransparent", 255]]
+        _list.Push(["caret" v[1], v[2]]), _list.Push(["cursor" v[1], v[2]])
+
+    for v in _list {
+        if val := IniRead(configFile, "Settings", v[1], "") {
+            if val != v[2] {
+                for _v in stateList
+                    IniWrite(val, configFile, "Settings", v[1] _v)
+            }
+            try IniDelete(configFile, "Settings", v[1])
+        }
     }
 
     if val := IniRead(configFile, "Settings", "symbolNearCursorWindow", "") {

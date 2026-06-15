@@ -151,16 +151,18 @@ if isJAB {
                         targetColor := var.%"borderColor" currentState%
                         targetWidth := var.%"borderWidth" currentState%
                     }
+                    if !targetColor
+                        targetColor := var.%"borderColor" currentState%
 
-                    allowShow := (targetColor != "")
+                    allowShow := targetColor != ""
 
                     if (allowShow && !isPined) {
                         switch var.borderShowMode {
                             case "blacklist":
-                                if matchWindowDisplay(exeName, exeTitle, exeClass, var.WindowBorderRule["hide"])
+                                if exePid != appPid && matchWindowDisplay(exeName, exeTitle, exeClass, var.WindowBorderRule["hide"])
                                     allowShow := false
                             case "whitelist":
-                                if !matchWindowDisplay(exeName, exeTitle, exeClass, var.WindowBorderRule["show"])
+                                if exePid != appPid && !matchWindowDisplay(exeName, exeTitle, exeClass, var.WindowBorderRule["show"])
                                     allowShow := false
                         }
                     }
@@ -169,13 +171,12 @@ if isJAB {
 
                     if currentBorderFingerprint != lastBorderState || (var.borderReshowOnTitleChange && hasTitleChange) || (var.borderReshowOnClassChange && hasClassChange) || (var.borderReshowOnProcessChange && hasProcessChange) {
                         if allowShow {
-                            if IsSet(activeBorderTimer) {
+                            if IsSet(activeBorderTimer)
                                 SetTimer(activeBorderTimer, 0)
-                            }
                             showBorder(targetColor, targetWidth, hwnd)
                             if var.borderHideDelay {
                                 activeBorderTimer := hideBorder.Bind(hwnd)
-                                SetTimer(activeBorderTimer, -var.borderHideDelay)
+                                SetTimer(activeBorderTimer, -returnMaxTimerNumber(var.borderHideDelay))
                             }
                         } else {
                             if IsSet(activeBorderTimer)
@@ -197,18 +198,15 @@ if isJAB {
 
             switch var.cursorSymbolShowMode {
                 case "blacklist":
-                    if matchWindowDisplay(exeName, exeTitle, exeClass, var.WindowCursorSymbolRule["hide"]) {
+                    if exePid != appPid && matchWindowDisplay(exeName, exeTitle, exeClass, var.WindowCursorSymbolRule["hide"])
                         hideCursorSymbol()
-                    } else if !cursorDelayState.hidden {
+                    else if !cursorDelayState.hidden
                         ShowCursorSymbolEx(currentState)
-                    }
                 case "whitelist":
-                    if matchWindowDisplay(exeName, exeTitle, exeClass, var.WindowCursorSymbolRule["show"]) {
-                        if !cursorDelayState.hidden
-                            ShowCursorSymbolEx(currentState)
-                    } else {
+                    if exePid != appPid && !matchWindowDisplay(exeName, exeTitle, exeClass, var.WindowCursorSymbolRule["show"])
                         hideCursorSymbol()
-                    }
+                    else if !cursorDelayState.hidden
+                        ShowCursorSymbolEx(currentState)
                 default:
                     hideCursorSymbol()
             }
@@ -224,9 +222,9 @@ if isJAB {
                 if currentState != lastInputState || (var.overlayReshowOnTitleChange && hasTitleChange) || (var.overlayReshowOnClassChange && hasClassChange) || (var.overlayReshowOnProcessChange && hasProcessChange) {
                     switch var.overlayShowMode {
                         case "blacklist":
-                            matchWindowDisplay(exeName, exeTitle, exeClass, var.WindowOverlayRule["hide"]) ? hideOverlay() : showOverlay(currentState)
+                            (exePid != appPid && matchWindowDisplay(exeName, exeTitle, exeClass, var.WindowOverlayRule["hide"])) ? hideOverlay() : showOverlay(currentState)
                         case "whitelist":
-                            matchWindowDisplay(exeName, exeTitle, exeClass, var.WindowOverlayRule["show"]) ? showOverlay(currentState) : hideOverlay()
+                            (exePid != appPid && !matchWindowDisplay(exeName, exeTitle, exeClass, var.WindowOverlayRule["show"])) ? hideOverlay() : showOverlay(currentState)
                         default:
                             showOverlay(currentState)
                     }

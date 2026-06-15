@@ -22,25 +22,25 @@ var := {
     screenNum: MonitorGetCount(),
     screenList: getScreenInfo(),
     cursorInfo: Map(
-        "Arrow", [32512, "aero_arrow.cur"],  ; 普通选择
-        "IBeam", [32513, "beam_m.cur"],  ; 文本选择/文本输入
-        "Wait", [32514, "aero_busy.ani"],  ; 繁忙
-        "Crosshair", [32515, "cross_m.cur"],  ; 精度选择
-        "UpArrow", [32516, "aero_up.cur"],  ; 备用选择
-        "SizeNWSE", [32642, "aero_nwse.cur"],  ; 对角线调整大小 左上=>右下
-        "SizeNESW", [32643, "aero_nesw.cur"],  ; 对角线调整大小 左下=>右上
-        "SizeWE", [32644, "aero_ew.cur"],  ; 水平调整大小
-        "SizeNS", [32645, "aero_ns.cur"],  ; 垂直调整大小
-        "SizeAll", [32646, "aero_move.cur"],  ; 移动
-        "No", [32648, "aero_unavail.cur"],  ; 无法(禁用)
-        "Hand", [32649, "aero_link.cur"],  ; 链接选择
-        "AppStarting", [32650, "aero_working.ani"],  ; 在后台工作
-        "Help", [32651, "aero_helpsel.cur"],  ; 帮助选择
-        "Pin", [32671, "aero_pin.cur"],  ; 位置选择
-        "Person", [32672, "aero_person.cur"],  ; 人员选择
-        "NWPen", [32631, "aero_pen.cur"],  ; 手写
+        "ARROW", [32512, "aero_arrow.cur"],  ; 普通选择
+        "IBEAM", [32513, "beam_m.cur"],  ; 文本选择/文本输入
+        "WAIT", [32514, "aero_busy.ani"],  ; 繁忙
+        "CROSSHAIR", [32515, "cross_m.cur"],  ; 精度选择
+        "UPARROW", [32516, "aero_up.cur"],  ; 备用选择
+        "SIZENWSE", [32642, "aero_nwse.cur"],  ; 对角线调整大小 左上=>右下
+        "SIZENESW", [32643, "aero_nesw.cur"],  ; 对角线调整大小 左下=>右上
+        "SIZEWE", [32644, "aero_ew.cur"],  ; 水平调整大小
+        "SIZENS", [32645, "aero_ns.cur"],  ; 垂直调整大小
+        "SIZEALL", [32646, "aero_move.cur"],  ; 移动
+        "NO", [32648, "aero_unavail.cur"],  ; 无法(禁用)
+        "HAND", [32649, "aero_link.cur"],  ; 链接选择
+        "APPSTARTING", [32650, "aero_working.ani"],  ; 在后台工作
+        "HELP", [32651, "aero_helpsel.cur"],  ; 帮助选择
+        "PIN", [32671, "aero_pin.cur"],  ; 位置选择
+        "PERSON", [32672, "aero_person.cur"],  ; 人员选择
+        "NWPEN", [32631, "aero_pen.cur"],  ; 手写
     ),
-    ; 设置
+    loadOnlyIBeamCursor: readIni("loadOnlyIBeamCursor", 0),
     language: currentLang,
     ; 开机自启动
     launchAtStartup: readIni("launchAtStartup", 0),
@@ -63,6 +63,7 @@ var := {
     cursorActive: readIni("cursorActive", 0),
     ; 是否显示状态悬浮小窗
     overlayActive: readIni("overlayActive", 0),
+    overlayOnlyFocusScreen: readIni("overlayOnlyFocusScreen", 0),
     overlayCornerPreference: readIni("overlayCornerPreference", 3),
     overlayAnimation: readIni("overlayAnimation", 1),
     overlayReshowOnProcessChange: readIni("overlayReshowOnProcessChange", 0),
@@ -70,8 +71,6 @@ var := {
     overlayReshowOnClassChange: readIni("overlayReshowOnClassChange", 0),
     overlayHideDelay: readIni("overlayHideDelay", 2000),
     overlayShowMode: readIni("overlayShowMode", "blacklist"),
-    overlayTextFont: readIni("overlayTextFont", "Microsoft YaHei"),
-    overlayTextSize: readIni("overlayTextSize", 16),
     overlayTextWeight: readIni("overlayTextWeight", 700),
     overlayTransparent: readIni("overlayTransparent", 255),
     overlayEdgeStyle: readIni("overlayEdgeStyle", 0),
@@ -81,15 +80,12 @@ var := {
     borderReshowOnClassChange: readIni("borderReshowOnClassChange", 0),
     borderHideDelay: readIni("borderHideDelay", 0),
     borderShowMode: readIni("borderShowMode", "blacklist"),
-    borderWidthPinned: readIni("borderWidthPinned", 1),
+    borderWidthPinned: readIni("borderWidthPinned", 2),
     borderColorPinned: readIni("borderColorPinned", "0x00CCCC"),
     ; 符号
     caretSymbolType: readIni("caretSymbolType", 0),
     caretSymbolHideDelay: readIni("caretSymbolHideDelay", 0),
-    caretSymbolTextFont: readIni("caretSymbolTextFont", "Microsoft YaHei"),
     caretSymbolTextEdgeStyle: readIni("caretSymbolTextEdgeStyle", 0),
-    caretSymbolTextWeight: readIni("caretSymbolTextWeight", 700),
-    caretSymbolTextTransparent: readIni("caretSymbolTextTransparent", 255),
     caretSymbolShapeEdgeStyle: readIni("caretSymbolShapeEdgeStyle", 0),
     caretSymbolTextCornerPreference: readIni("caretSymbolTextCornerPreference", 3),
     caretSymbolShapeCornerPreference: readIni("caretSymbolShapeCornerPreference", 3),
@@ -99,10 +95,7 @@ var := {
     cursorSymbolType: readIni("cursorSymbolType", 0),
     cursorSymbolShowMode: readIni("cursorSymbolShowMode", "blacklist"),
     cursorSymbolHideDelay: readIni("cursorSymbolHideDelay", 0),
-    cursorSymbolTextFont: readIni("cursorSymbolTextFont", "Microsoft YaHei"),
     cursorSymbolTextEdgeStyle: readIni("cursorSymbolTextEdgeStyle", 0),
-    cursorSymbolTextWeight: readIni("cursorSymbolTextWeight", 700),
-    cursorSymbolTextTransparent: readIni("cursorSymbolTextTransparent", 255),
     cursorSymbolShapeEdgeStyle: readIni("cursorSymbolShapeEdgeStyle", 0),
     cursorSymbolTextCornerPreference: readIni("cursorSymbolTextCornerPreference", 3),
     cursorSymbolShapeCornerPreference: readIni("cursorSymbolShapeCornerPreference", 3),
@@ -130,19 +123,22 @@ defaultSymbolMap := Map()
 
 _list := [
     ["SymbolPicturePath", "", ""],
-    ["SymbolPictureOffsetX", 0, 0],
+    ["SymbolPictureOffsetX", -25, 0],
     ["SymbolPictureOffsetY", 0, 30],
-    ["SymbolPictureWidth", 15, 15],
-    ["SymbolPictureHeight", 15, 15],
+    ["SymbolPictureWidth", 20, 20],
+    ["SymbolPictureHeight", 20, 20],
     ["SymbolShapeColor", "", ""],
     ["SymbolShapeOffsetX", 0, 0],
     ["SymbolShapeOffsetY", 0, 30],
-    ["SymbolShapeWidth", 9, 9],
-    ["SymbolShapeHeight", 9, 9],
+    ["SymbolShapeWidth", 12, 12],
+    ["SymbolShapeHeight", 12, 12],
     ["SymbolShapeTransparent", 255, 255],
     ["SymbolTextContent", "", ""],
     ["SymbolTextBgColor", "", ""],
     ["SymbolTextColor", "0xFFFFFF", "0xFFFFFF"],
+    ["SymbolTextFont", "Microsoft YaHei", "Microsoft YaHei"],
+    ["SymbolTextWeight", 700, 700],
+    ["SymbolTextTransparent", 255, 255],
     ["SymbolTextSize", 16, 16],
     ["SymbolTextOffsetX", 0, 0],
     ["SymbolTextOffsetY", 0, 30],
@@ -150,9 +146,13 @@ _list := [
 
 for v in stateList {
     list := [
-        ["borderWidth", 1],
+        ["borderWidth", 2],
         ["borderColor", ""],
         ["overlayText", ""],
+        ["overlayTextFont", "Microsoft YaHei"],
+        ["overlayTextSize", 16],
+        ["overlayTextWeight", 700],
+        ["overlayTransparent", 255],
         ["overlayBgColor", ""],
         ["overlayTextColor", "0xFFFFFF"],
         ["overlayBasePosition", "topWindow"],
@@ -192,9 +192,11 @@ for v in windowConditionKeyList
 allTriggerKeyList := ["hotkey"]
 switchTriggerKeyList := [
     "switchStateCaps-CapsLock",
-    "switchStateCN-LShift", "switchStateCN-RShift", "switchStateCN-CtrlSpace", "switchStateCN-IME",
-    "switchStateEN-LShift", "switchStateEN-RShift", "switchStateEN-CtrlSpace", "switchStateEN-IME",
-    "switchKeyboardCN", "switchKeyboardUS", "switchKeyboardJP", "switchKeyboardKR",
+    "switchStateCN-IME", "switchStateCN-LShift", "switchStateCN-RShift", "switchStateCN-CtrlSpace",
+    "switchStateEN-IME", "switchStateEN-LShift", "switchStateEN-RShift", "switchStateEN-CtrlSpace",
+    "switchKeyboardCN", "switchKeyboardUS",
+    "switchKeyboardJP", "switchKeyboardJPHiragana", "switchKeyboardJPKatakana", "switchKeyboardJPHalfKana", "switchKeyboardJPFullAlpha", "switchKeyboardJPHalfAlpha",
+    "switchKeyboardKR", "switchKeyboardKRHangul", "switchKeyboardKRAlpha",
 ]
 allTriggerKeyList.Push(switchTriggerKeyList.Clone()*)
 
@@ -210,7 +212,8 @@ allTriggerKeyList.Push("none", "showStateCode")
 
 windowTriggerKeyList := triggerKeyList.Clone()
 windowTriggerKeyList.InsertAt(10, "ignoreStateSwitch")
-windowTriggerKeyList.InsertAt(15, "ignoreKeyboardSwitch")
+windowTriggerKeyList.InsertAt(22, "ignoreKeyboardSwitch")
+windowTriggerKeyList.Push("showStateCode")
 allTriggerKeyList.Push("ignoreStateSwitch", "ignoreKeyboardSwitch")
 
 triggerTextMap := Map()
@@ -232,7 +235,14 @@ runTriggers(triggers, *) {
             case "switchKeyboardCN": switchKeyboard("CN")
             case "switchKeyboardUS": switchKeyboard("US")
             case "switchKeyboardJP": switchKeyboard("JP")
+            case "switchKeyboardJPHiragana": switchKeyboard("JP", 1, 9)
+            case "switchKeyboardJPKatakana": switchKeyboard("JP", 1, 11)
+            case "switchKeyboardJPHalfKana": switchKeyboard("JP", 1, 3)
+            case "switchKeyboardJPFullAlpha": switchKeyboard("JP", 1, 8)
+            case "switchKeyboardJPHalfAlpha": switchKeyboard("JP", 0, 0)
             case "switchKeyboardKR": switchKeyboard("KR")
+            case "switchKeyboardKRHangul": switchKeyboard("KR", 1, 1)
+            case "switchKeyboardKRAlpha": switchKeyboard("KR", 1, 0)
             case "toggle": toggleApp()
             case "pause": suspendApp()
             case "resume": resumeApp()
@@ -250,7 +260,7 @@ runTriggers(triggers, *) {
         }
     }
     _switchState(state, key) {
-        switchKeyboard("CN", 1), SetTimer(switchState.Bind(state, key), -20)
+        switchKeyboard("CN", , , 1), SetTimer(switchState.Bind(state, key), -20)
     }
 }
 
@@ -590,10 +600,29 @@ getScreenInfo() {
     list := []
     MonitorCount := MonitorGetCount()
     MonitorPrimary := MonitorGetPrimary()
+
+    probeHwnd := DllCall("CreateWindowEx", "UInt", 0x08000000 ; WS_EX_NOACTIVATE
+        , "Str", "Static", "Str", ""
+        , "UInt", 0x80000000 ; WS_POPUP
+        , "Int", 0, "Int", 0, "Int", 0, "Int", 0
+        , "Ptr", 0, "Ptr", 0, "Ptr", 0, "Ptr", 0, "Ptr")
+
     Loop MonitorCount
     {
         MonitorGet(A_Index, &L, &T, &R, &B)
         MonitorGetWorkArea(A_Index, &WL, &WT, &WR, &WB)
+
+        currentScale := 1.0
+        if probeHwnd {
+            midX := (L + R) // 2
+            midY := (T + B) // 2
+            DllCall("SetWindowPos", "Ptr", probeHwnd, "Ptr", 0
+                , "Int", midX, "Int", midY, "Int", 0, "Int", 0
+                , "UInt", 0x0001 | 0x0004 | 0x0010 | 0x0040)
+            realDpi := DllCall("GetDpiForWindow", "Ptr", probeHwnd, "UInt")
+            currentScale := realDpi / 96
+        }
+
         list.Push({
             main: MonitorPrimary,
             count: MonitorCount,
@@ -606,11 +635,17 @@ getScreenInfo() {
             workTop: WT,
             workRight: WR,
             workBottom: WB,
+            scale: currentScale ;
         })
     }
+    if probeHwnd
+        DllCall("DestroyWindow", "Ptr", probeHwnd)
+
     return list
 }
+
 isWhichScreen(hwnd := 0) {
+
     try {
         if hwnd
             WinGetPos(&x, &y, &w, &h, hwnd)
@@ -670,7 +705,7 @@ onDelayTick() {
     if (GetKeyState("LButton", "P")) {
         delayState.needHide := 0
         delayState.isWait := 1
-        SetTimer(() => delayState.isWait := 0, -var.caretSymbolHideDelay)
+        SetTimer(() => delayState.isWait := 0, -returnMaxTimerNumber(var.caretSymbolHideDelay))
     }
 
     if A_TimeIdleKeyboard <= leaveDelay
@@ -958,8 +993,6 @@ var._lastCaptureMode := ""
  * @link https://github.com/Tebayaki/AutoHotkeyScripts/blob/main/lib/GetCaretPosEx/GetCaretPosEx.ahk
  */
 GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
-    try DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr")
-
     hwnd := 0
     captureModeChain := getCaretCapture().capture
     modes := StrSplit(captureModeChain, ">")
@@ -1034,7 +1067,6 @@ GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
         if DllCall("GetGUIThreadInfo", "uint", 0, "ptr", guiThreadInfo) {
             if hwnd := NumGet(guiThreadInfo, x64 ? 48 : 28, "ptr") {
                 getRect(guiThreadInfo.Ptr + (x64 ? 56 : 32), &left, &top, &right, &bottom)
-                scaleRect(getWindowScale(hwnd), &left, &top, &right, &bottom)
                 clientToScreenRect(hwnd, &left, &top, &right, &bottom)
                 return true
             }
@@ -1058,14 +1090,10 @@ GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
                 hr := ComCall(22, accCaret, "int*", &x := 0, "int*", &y := 0, "int*", &w := 0, "int*", &h := 0, "int64", 3, "int64", 0, "int")
             }
             if !hr {
-                pt := x | y << 32
-                DllCall("ScreenToClient", "ptr", hwnd, "int64*", &pt)
-                left := pt & 0xffffffff
-                top := pt >> 32
-                right := left + w
-                bottom := top + h
-                scaleRect(getWindowScale(hwnd), &left, &top, &right, &bottom)
-                clientToScreenRect(hwnd, &left, &top, &right, &bottom)
+                left := x
+                top := y
+                right := x + w
+                bottom := y + h
                 return true
             }
         }
@@ -1237,7 +1265,6 @@ GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
         if !DllCall("ReadProcessMemory", "ptr", hProcess, "ptr", pRect, "ptr", rect, "uptr", rect.Size, "uptr*", &bytesRead := 0) || bytesRead !== rect.Size
             return false
         getRect(rect, &left, &top, &right, &bottom)
-        scaleRect(getWindowScale(hwnd), &left, &top, &right, &bottom)
         return true
 
         static isX64Process(hProcess) {
@@ -1332,8 +1359,10 @@ GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
                 , "ptr*", oAcc := ComValue(9, 0)) == 0 {
                 x := Buffer(4), y := Buffer(4), w := Buffer(4), h := Buffer(4)
                 oAcc.accLocation(ComValue(0x4003, x.ptr, 1), ComValue(0x4003, y.ptr, 1), ComValue(0x4003, w.ptr, 1), ComValue(0x4003, h.ptr, 1), 0)
-                left := NumGet(x, 0, "int"), top := NumGet(y, 0, "int")
-                right := left + NumGet(w, 0, "int"), bottom := top + NumGet(h, 0, "int")
+                left := NumGet(x, 0, "int")
+                top := NumGet(y, 0, "int")
+                right := left + NumGet(w, 0, "int")
+                bottom := top + NumGet(h, 0, "int")
                 if (left | top) != 0
                     return 1
                 return 0
@@ -1351,19 +1380,6 @@ GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
         top := NumGet(buf, 4, "int")
         right := NumGet(buf, 8, "int")
         bottom := NumGet(buf, 12, "int")
-    }
-
-    static getWindowScale(hwnd) {
-        if winDpi := DllCall("GetDpiForWindow", "ptr", hwnd, "uint")
-            return A_ScreenDPI / winDpi
-        return 1
-    }
-
-    static scaleRect(scale, &left, &top, &right, &bottom) {
-        left := Round(left * scale)
-        top := Round(top * scale)
-        right := Round(right * scale)
-        bottom := Round(bottom * scale)
     }
 
     static clientToScreenRect(hwnd, &left, &top, &right, &bottom) {
