@@ -74,13 +74,13 @@ makeTrayMenu() {
 }
 
 closeApp(*) {
-    try ProcessClose(updaterPID)
+    ProcessClose(updaterPID)
     killJAB()
     revertCursor()
     ExitApp()
 }
 restartApp(*) {
-    try ProcessClose(updaterPID)
+    ProcessClose(updaterPID)
     if (var.symbolJABActive) {
         killJAB()
     }
@@ -106,8 +106,8 @@ e_windowInfo(*) {
 
         g.AddLink("Section", getDocsLink("menu/window-info"))
         for v in i18n("windowInfo.list", 1) {
-            renderGroupBox(g, v, , "h120 w" bw)
-            gc.%v% := _ := g.AddEdit("xs+20 yp+55 ReadOnly cGray -VScroll w" bw - 40)
+            renderGroupBox(g, v, , "h" uicEdit.h " w" bw)
+            gc.%v% := _ := g.AddEdit("xs+20 yp+" uicEdit.yp " ReadOnly cGray -VScroll w" bw - 40)
             _.Text := i18n("windowInfo.tip")
         }
         g.OnEvent("Close", (*) => timer := 0)
@@ -223,8 +223,8 @@ createProcessMenuGui(meta, *) {
             w := info.w
             bw := w - g.MarginX * 2
 
-            opt := "xs+20 yp+55 w" bw - 40
-            layout := " h120 w" bw
+            opt := "xs+20 yp+" uicEdit.yp " w" bw - 40
+            layout := " h" uicEdit.h " w" bw
 
             sectionList := []
             i := 0
@@ -407,10 +407,10 @@ createProcessMenuGui(meta, *) {
                     if var.symbolJABActive
                         modeNameList.Push("JAB")
                     ddlControls := captureList.Clone()
-                    renderGroupBox(g, "symbolCaretCapture", "xs h180 w" bw)
+                    renderGroupBox(g, "symbolCaretCapture", "xs h" uicDDL.h * 1.5 " w" bw)
                     for i, v in captureList {
                         if i == 1 || i == 5 {
-                            _opt := "xs+20 yp+55"
+                            _opt := "xs+20 yp+" uicDDL.yp
                         } else {
                             _opt := "yp"
                             g.AddText("yp", ">")
@@ -422,10 +422,10 @@ createProcessMenuGui(meta, *) {
                         SuppressControlWheel(_.Hwnd)
                     }
 
-                    renderGroupBox(g, "symbolCaretCapture.offset", "xs h180 w" bw)
+                    renderGroupBox(g, "symbolCaretCapture.offset", "xs h" uicDDL.h * 1.5 " w" bw)
                     for i, v in captureOffsetList {
                         if i == 1 || i == 5 {
-                            _opt := "xs+20 yp+55"
+                            _opt := "xs+20 yp+" uicDDL.yp
                         } else {
                             _opt := "yp"
                             g.AddText("yp", ">")
@@ -711,6 +711,11 @@ createProcessMenuGui(meta, *) {
                 for i, trigger in meta.trigger {
                     tab.UseTab(i)
                     g.AddLink("Section", meta.link)
+                    if column.Get("capture", 0) {
+                        _ := g.AddCheckbox("xs", i18n("trigger.showCaptureMode"))
+                        _.Value := var._showCaptureMode
+                        _.OnEvent("Click", (ctrl, *) => (val := ctrl.Value, showCaptureMode(var._showCaptureMode := val)))
+                    }
                     LV := g.AddListView("xs -LV0x10 -Multi r9 NoSortHdr Sort Grid w" w, columnText)
                     LV.trigger := trigger
                     LV.Opt("-Redraw")
@@ -844,6 +849,8 @@ suspendApp() {
 ; 显示状态码和转换码
 showStateCode(show, *) {
     if show {
+        if var._showCaptureMode
+            showCaptureMode(0)
         SetTimer(showStateCodeTimer, 25)
         return
     }
@@ -853,7 +860,23 @@ showStateCode(show, *) {
 
 showStateCodeTimer() {
     info := IME.CheckInputMode()
-    ToolTip(i18n("inputMethodDetectionMode.stateCode") ": " info.stateMode "`n" i18n("inputMethodDetectionMode.conversionCode") ": " info.conversionMode)
+    ToolTip(" " i18n("inputMethodDetectionMode.stateCode") ": " info.stateMode "`n " i18n("inputMethodDetectionMode.conversionCode") ": " info.conversionMode)
+}
+
+; 显示当前的光标捕获模式
+showCaptureMode(show, *) {
+    if show {
+        if var._showStateCode
+            showStateCode(0)
+        SetTimer(showCaptureModeTimer, 25)
+        return
+    }
+    ToolTip()
+    SetTimer(showCaptureModeTimer, 0)
+}
+
+showCaptureModeTimer() {
+    ToolTip(" " (var._lastCaptureMode ? var._lastCaptureMode : i18n("none")))
 }
 
 /**

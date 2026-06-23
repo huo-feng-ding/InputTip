@@ -2,15 +2,16 @@
 
 #Requires AutoHotkey v2.0
 
+runtimeVersion := "2.0.26.0"
 if (A_IsCompiled) {
-    currentVersion := "3.6.6"
+    currentVersion := "3.6.7"
     versionType := "exe"
 } else {
-    currentVersion := "3.6.6"
+    currentVersion := "3.6.7"
     versionType := "zip"
 }
 
-;@AHK2Exe-SetVersion 3.6.6
+;@AHK2Exe-SetVersion 3.6.7
 ;@AHK2Exe-SetLanguage 0x0804
 ;@Ahk2Exe-SetMainIcon temp\icon\default-app.ico
 ;@Ahk2Exe-SetCopyright Copyright (c) 2023-present abgox
@@ -55,6 +56,8 @@ taskNameNoUAC := appid ".noUAC"
 taskNameJAB := appid ".JAB.JetBrains"
 
 appPid := DllCall("GetCurrentProcessId")
+runtime := A_ScriptDir "\AutoHotkey\AutoHotkey64.exe"
+runtime2 := A_ScriptDir "\AutoHotkey\_AutoHotkey64.exe"
 
 dataDir := A_ScriptDir "\data"
 configFile := dataDir "\config.ini"

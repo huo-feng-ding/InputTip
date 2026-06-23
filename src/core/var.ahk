@@ -69,6 +69,9 @@ var := {
     overlayReshowOnProcessChange: readIni("overlayReshowOnProcessChange", 0),
     overlayReshowOnTitleChange: readIni("overlayReshowOnTitleChange", 0),
     overlayReshowOnClassChange: readIni("overlayReshowOnClassChange", 0),
+    overlayShowOnNormal: readIni("overlayShowOnNormal", 1),
+    overlayShowOnMaximized: readIni("overlayShowOnMaximized", 1),
+    overlayShowOnFullscreen: readIni("overlayShowOnFullscreen", 1),
     overlayHideDelay: readIni("overlayHideDelay", 2000),
     overlayShowMode: readIni("overlayShowMode", "blacklist"),
     overlayTextWeight: readIni("overlayTextWeight", 700),
@@ -78,14 +81,17 @@ var := {
     borderReshowOnProcessChange: readIni("borderReshowOnProcessChange", 0),
     borderReshowOnTitleChange: readIni("borderReshowOnTitleChange", 0),
     borderReshowOnClassChange: readIni("borderReshowOnClassChange", 0),
-    borderShowOnMaxScreenTop: readIni("borderShowOnMaxScreenTop", 1),
-    borderShowOnMaxScreenBottom: readIni("borderShowOnMaxScreenBottom", 1),
-    borderShowOnMaxScreenLeft: readIni("borderShowOnMaxScreenLeft", 1),
-    borderShowOnMaxScreenRight: readIni("borderShowOnMaxScreenRight", 1),
-    borderShowOnFullScreenTop: readIni("borderShowOnFullScreenTop", 1),
-    borderShowOnFullScreenBottom: readIni("borderShowOnFullScreenBottom", 1),
-    borderShowOnFullScreenLeft: readIni("borderShowOnFullScreenLeft", 1),
-    borderShowOnFullScreenRight: readIni("borderShowOnFullScreenRight", 1),
+    borderShowOnMaximizedTop: readIni("borderShowOnMaximizedTop", 1),
+    borderShowOnMaximizedBottom: readIni("borderShowOnMaximizedBottom", 1),
+    borderShowOnMaximizedLeft: readIni("borderShowOnMaximizedLeft", 1),
+    borderShowOnMaximizedRight: readIni("borderShowOnMaximizedRight", 1),
+    borderShowOnFullscreenTop: readIni("borderShowOnFullscreenTop", 1),
+    borderShowOnFullscreenBottom: readIni("borderShowOnFullscreenBottom", 1),
+    borderShowOnFullscreenLeft: readIni("borderShowOnFullscreenLeft", 1),
+    borderShowOnFullscreenRight: readIni("borderShowOnFullscreenRight", 1),
+    borderShowOnNormal: readIni("borderShowOnNormal", 1),
+    borderShowOnMaximized: readIni("borderShowOnMaximized", 1),
+    borderShowOnFullscreen: readIni("borderShowOnFullscreen", 1),
     borderHideDelay: readIni("borderHideDelay", 0),
     borderShowMode: readIni("borderShowMode", "blacklist"),
     borderWidthPinned: readIni("borderWidthPinned", 2),
@@ -108,6 +114,7 @@ var := {
     cursorSymbolTextCornerPreference: readIni("cursorSymbolTextCornerPreference", 3),
     cursorSymbolShapeCornerPreference: readIni("cursorSymbolShapeCornerPreference", 3),
     menuAnimation: readIni("menuAnimation", 1),
+    menuFontSize: Max(readIni("menuFontSize", 16), 12),
     ; 轮询响应间隔
     pollInterval: readIni("pollInterval", 20),
     ; 托盘菜单图标
@@ -122,6 +129,12 @@ var := {
 }
 
 var._paused := 0
+
+if indexOfArr([12, 14, 16, 18, 20], var.menuFontSize)
+    fontOpt[1] := "s" Max(var.menuFontSize, 12)
+else
+    var.menuFontSize := 16
+try updateUIC()
 
 ; 自定义模式下定义的模式规则
 var.inputMethodDetectionRule := readIni("inputMethodDetectionRule", "")
@@ -215,13 +228,13 @@ allTriggerKeyList.Push(_*)
 
 hotkeyTriggerKeyList := triggerKeyList.Clone()
 hotkeyTriggerKeyList.InsertAt(1, "none")
-hotkeyTriggerKeyList.Push("showStateCode")
-allTriggerKeyList.Push("none", "showStateCode")
+hotkeyTriggerKeyList.Push("showStateCode", "showCaptureMode")
+allTriggerKeyList.Push("none", "showStateCode", "showCaptureMode")
 
 windowTriggerKeyList := triggerKeyList.Clone()
 windowTriggerKeyList.InsertAt(10, "ignoreStateSwitch")
 windowTriggerKeyList.InsertAt(22, "ignoreKeyboardSwitch")
-windowTriggerKeyList.Push("showStateCode")
+windowTriggerKeyList.Push("showStateCode", "showCaptureMode")
 allTriggerKeyList.Push("ignoreStateSwitch", "ignoreKeyboardSwitch")
 
 triggerTextMap := Map()
@@ -256,7 +269,8 @@ runTriggers(triggers, *) {
             case "resume": resumeApp()
             case "exit": SetTimer(closeApp, -500)
             case "restart": SetTimer(restartApp, -500)
-            case "showStateCode": showStateCode(var._showStateCode := !var._showStateCode)
+            case "showStateCode": showCaptureMode(0), showStateCode(var._showStateCode := !var._showStateCode)
+            case "showCaptureMode": showStateCode(0), showCaptureMode(var._showCaptureMode := !var._showCaptureMode)
             case "toggleWindowTop": try WinSetAlwaysOnTop((WinGetExStyle("A") & 0x8) ? 0 : 1, "A")
             case "setWindowTop":
                 if !(WinGetExStyle("A") & 0x8)
@@ -265,6 +279,8 @@ runTriggers(triggers, *) {
             default:
                 if !var._showStateCode
                     showStateCode(0)
+                if !var._showCaptureMode
+                    showCaptureMode(0)
         }
     }
     _switchState(state, key) {
@@ -478,6 +494,7 @@ parseWindowRule() {
     var.hotkeyRule := newHotkeyRule
 
     var._showStateCode := 0
+    var._showCaptureMode := 0
 
     var._matchCache.Clear()
 
