@@ -3,19 +3,16 @@
 #Requires AutoHotkey v2.0
 
 runtimeVersion := "2.0.26.0"
-if (A_IsCompiled) {
-    currentVersion := "3.6.7"
-    versionType := "exe"
-} else {
-    currentVersion := "3.6.7"
-    versionType := "zip"
-}
+if A_IsCompiled
+    versionType := "exe", currentVersion := "3.6.9"
+else
+    versionType := "zip", currentVersion := "3.6.9"
 
-;@AHK2Exe-SetVersion 3.6.7
-;@AHK2Exe-SetLanguage 0x0804
+;@Ahk2Exe-SetVersion 3.6.9
+;@Ahk2Exe-SetLanguage 0x0804
 ;@Ahk2Exe-SetMainIcon temp\icon\default-app.ico
 ;@Ahk2Exe-SetCopyright Copyright (c) 2023-present abgox
-;@AHK2Exe-SetDescription 规则驱动的输入法状态管理器
+;@Ahk2Exe-SetDescription 规则驱动的输入法状态管理器
 #SingleInstance Force
 #Warn All, Off
 
@@ -44,9 +41,8 @@ updateScreenInfo() {
 hideOnTrayGui := []
 OnMessage(0x0211, onMenuLoop)  ; WM_ENTERMENULOOP
 onMenuLoop(wParam, lParam, msg, hwnd) {
-    for v in hideOnTrayGui {
+    for v in hideOnTrayGui
         try v.Hide()
-    }
 }
 
 author := "abgox"
@@ -61,6 +57,7 @@ runtime2 := A_ScriptDir "\AutoHotkey\_AutoHotkey64.exe"
 
 dataDir := A_ScriptDir "\data"
 configFile := dataDir "\config.ini"
+statsFile := dataDir "\stats.ini"
 pluginDir := dataDir "\plugin"
 cursorDir := dataDir "\cursor"
 symbolDir := dataDir "\symbol"

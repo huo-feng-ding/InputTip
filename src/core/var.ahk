@@ -1,9 +1,11 @@
 ; InputTip
 
 try {
-    keyCount := A_Args[1]
-    if (!IsNumber(keyCount)) {
-        keyCount := 0
+    keyCount := readIni(FormatTime(, "yyyy-MM-dd"), 0, "DailyKeystrokes", statsFile)
+    if !keyCount {
+        keyCount := A_Args[1]
+        if !IsNumber(keyCount)
+            keyCount := 0
     }
 } catch {
     keyCount := 0
@@ -18,188 +20,199 @@ line100 := line90 "----------"
 
 gc := {}
 
-var := {
-    screenNum: MonitorGetCount(),
-    screenList: getScreenInfo(),
-    cursorInfo: Map(
-        "ARROW", [32512, "aero_arrow.cur"],  ; 普通选择
-        "IBEAM", [32513, "beam_m.cur"],  ; 文本选择/文本输入
-        "WAIT", [32514, "aero_busy.ani"],  ; 繁忙
-        "CROSSHAIR", [32515, "cross_m.cur"],  ; 精度选择
-        "UPARROW", [32516, "aero_up.cur"],  ; 备用选择
-        "SIZENWSE", [32642, "aero_nwse.cur"],  ; 对角线调整大小 左上=>右下
-        "SIZENESW", [32643, "aero_nesw.cur"],  ; 对角线调整大小 左下=>右上
-        "SIZEWE", [32644, "aero_ew.cur"],  ; 水平调整大小
-        "SIZENS", [32645, "aero_ns.cur"],  ; 垂直调整大小
-        "SIZEALL", [32646, "aero_move.cur"],  ; 移动
-        "NO", [32648, "aero_unavail.cur"],  ; 无法(禁用)
-        "HAND", [32649, "aero_link.cur"],  ; 链接选择
-        "APPSTARTING", [32650, "aero_working.ani"],  ; 在后台工作
-        "HELP", [32651, "aero_helpsel.cur"],  ; 帮助选择
-        "PIN", [32671, "aero_pin.cur"],  ; 位置选择
-        "PERSON", [32672, "aero_person.cur"],  ; 人员选择
-        "NWPEN", [32631, "aero_pen.cur"],  ; 手写
-    ),
-    loadOnlyIBeamCursor: readIni("loadOnlyIBeamCursor", 0),
-    language: currentLang,
-    ; 开机自启动
-    launchAtStartup: readIni("launchAtStartup", 0),
-    ; 输入法模式
-    inputMethodDetectionMode: readIni("inputMethodDetectionMode", "general"),
-    checkUpdateOnStartup: readIni("checkUpdateOnStartup", 1),
-    ; 当运行 zip 版本时，是否直接以管理员权限运行
-    runCodeWithAdmin: readIni("runCodeWithAdmin", 0),
-    ; 默认输入法状态，在自定义模式下，如果所有规则都不匹配，则返回此默认状态
-    inputMethodBaseState: readIni("inputMethodBaseState", "EN"),
-    ; 获取输入法状态的超时时间
-    inputMethodDetectionTimeout: readIni("inputMethodDetectionTimeout", 200),
-    ; 是否保持大写锁定状态
-    keepCapsLockWhenStateSwitch: readIni("keepCapsLockWhenStateSwitch", 0),
-    keepCapsLockWhenKeyboardSwitch: readIni("keepCapsLockWhenKeyboardSwitch", 0),
-    ; 是否将输入法状态导出
-    exportState: readIni("exportState", 0),
-    exportStateFile: A_Temp "\abgox.InputTip.State",
-    ; 是否改变鼠标样式
-    cursorActive: readIni("cursorActive", 0),
-    ; 是否显示状态悬浮小窗
-    overlayActive: readIni("overlayActive", 0),
-    overlayOnlyFocusScreen: readIni("overlayOnlyFocusScreen", 0),
-    overlayCornerPreference: readIni("overlayCornerPreference", 3),
-    overlayAnimation: readIni("overlayAnimation", 1),
-    overlayReshowOnProcessChange: readIni("overlayReshowOnProcessChange", 0),
-    overlayReshowOnTitleChange: readIni("overlayReshowOnTitleChange", 0),
-    overlayReshowOnClassChange: readIni("overlayReshowOnClassChange", 0),
-    overlayShowOnNormal: readIni("overlayShowOnNormal", 1),
-    overlayShowOnMaximized: readIni("overlayShowOnMaximized", 1),
-    overlayShowOnFullscreen: readIni("overlayShowOnFullscreen", 1),
-    overlayHideDelay: readIni("overlayHideDelay", 2000),
-    overlayShowMode: readIni("overlayShowMode", "blacklist"),
-    overlayTextWeight: readIni("overlayTextWeight", 700),
-    overlayTransparent: readIni("overlayTransparent", 255),
-    overlayEdgeStyle: readIni("overlayEdgeStyle", 0),
-    borderActive: readIni("borderActive", 0),
-    borderReshowOnProcessChange: readIni("borderReshowOnProcessChange", 0),
-    borderReshowOnTitleChange: readIni("borderReshowOnTitleChange", 0),
-    borderReshowOnClassChange: readIni("borderReshowOnClassChange", 0),
-    borderShowOnMaximizedTop: readIni("borderShowOnMaximizedTop", 1),
-    borderShowOnMaximizedBottom: readIni("borderShowOnMaximizedBottom", 1),
-    borderShowOnMaximizedLeft: readIni("borderShowOnMaximizedLeft", 1),
-    borderShowOnMaximizedRight: readIni("borderShowOnMaximizedRight", 1),
-    borderShowOnFullscreenTop: readIni("borderShowOnFullscreenTop", 1),
-    borderShowOnFullscreenBottom: readIni("borderShowOnFullscreenBottom", 1),
-    borderShowOnFullscreenLeft: readIni("borderShowOnFullscreenLeft", 1),
-    borderShowOnFullscreenRight: readIni("borderShowOnFullscreenRight", 1),
-    borderShowOnNormal: readIni("borderShowOnNormal", 1),
-    borderShowOnMaximized: readIni("borderShowOnMaximized", 1),
-    borderShowOnFullscreen: readIni("borderShowOnFullscreen", 1),
-    borderHideDelay: readIni("borderHideDelay", 0),
-    borderShowMode: readIni("borderShowMode", "blacklist"),
-    borderWidthPinned: readIni("borderWidthPinned", 2),
-    borderColorPinned: readIni("borderColorPinned", "0x00CCCC"),
-    ; 符号
-    caretSymbolType: readIni("caretSymbolType", 0),
-    caretSymbolHideDelay: readIni("caretSymbolHideDelay", 0),
-    caretSymbolTextEdgeStyle: readIni("caretSymbolTextEdgeStyle", 0),
-    caretSymbolShapeEdgeStyle: readIni("caretSymbolShapeEdgeStyle", 0),
-    caretSymbolTextCornerPreference: readIni("caretSymbolTextCornerPreference", 3),
-    caretSymbolShapeCornerPreference: readIni("caretSymbolShapeCornerPreference", 3),
-    ; 垂直偏移量的参考原点
-    caretSymbolOriginY: readIni("caretSymbolOriginY", "below"),
-    ; 在鼠标附近显示符号
-    cursorSymbolType: readIni("cursorSymbolType", 0),
-    cursorSymbolShowMode: readIni("cursorSymbolShowMode", "blacklist"),
-    cursorSymbolHideDelay: readIni("cursorSymbolHideDelay", 0),
-    cursorSymbolTextEdgeStyle: readIni("cursorSymbolTextEdgeStyle", 0),
-    cursorSymbolShapeEdgeStyle: readIni("cursorSymbolShapeEdgeStyle", 0),
-    cursorSymbolTextCornerPreference: readIni("cursorSymbolTextCornerPreference", 3),
-    cursorSymbolShapeCornerPreference: readIni("cursorSymbolShapeCornerPreference", 3),
-    menuAnimation: readIni("menuAnimation", 1),
-    menuFontSize: Max(readIni("menuFontSize", 16), 12),
-    ; 轮询响应间隔
-    pollInterval: readIni("pollInterval", 20),
-    ; 托盘菜单图标
-    iconRunning: readIni("iconRunning", "default-app.png"),
-    iconPaused: readIni("iconPaused", "default-app-paused.png"),
-    ; 启用 JAB/JetBrains 支持
-    symbolJABActive: readIni("symbolJABActive", 0),
-    enableKeyStats: readIni("enableKeyStats", 0),
-    enableCustomTrayTip: readIni("enableCustomTrayTip", 0),
-    trayTipTemplate: readIni("trayTipTemplate", i18n("trayTipTemplate.content")),
-    keyStatsTemplate: readIni("keyStatsTemplate", i18n("keyStatsTemplate.content"))
-}
 
-var._paused := 0
-
-if indexOfArr([12, 14, 16, 18, 20], var.menuFontSize)
-    fontOpt[1] := "s" Max(var.menuFontSize, 12)
-else
-    var.menuFontSize := 16
-try updateUIC()
-
-; 自定义模式下定义的模式规则
-var.inputMethodDetectionRule := readIni("inputMethodDetectionRule", "")
-var.inputMethodDetectionRules := StrSplit(var.inputMethodDetectionRule, "|")
-
-defaultSymbolMap := Map()
-
-_list := [
-    ["SymbolPicturePath", "", ""],
-    ["SymbolPictureOffsetX", -25, 0],
-    ["SymbolPictureOffsetY", 0, 30],
-    ["SymbolPictureWidth", 20, 20],
-    ["SymbolPictureHeight", 20, 20],
-    ["SymbolShapeColor", "", ""],
-    ["SymbolShapeOffsetX", 0, 0],
-    ["SymbolShapeOffsetY", 0, 30],
-    ["SymbolShapeWidth", 12, 12],
-    ["SymbolShapeHeight", 12, 12],
-    ["SymbolShapeTransparent", 255, 255],
-    ["SymbolTextContent", "", ""],
-    ["SymbolTextBgColor", "", ""],
-    ["SymbolTextColor", "0xFFFFFF", "0xFFFFFF"],
-    ["SymbolTextFont", "Microsoft YaHei", "Microsoft YaHei"],
-    ["SymbolTextWeight", 700, 700],
-    ["SymbolTextTransparent", 255, 255],
-    ["SymbolTextSize", 16, 16],
-    ["SymbolTextOffsetX", 0, 0],
-    ["SymbolTextOffsetY", 0, 30],
-]
-
-for v in stateList {
-    list := [
-        ["borderWidth", 2],
-        ["borderColor", ""],
-        ["overlayText", ""],
-        ["overlayTextFont", "Microsoft YaHei"],
-        ["overlayTextSize", 16],
-        ["overlayTextWeight", 700],
-        ["overlayTransparent", 255],
-        ["overlayBgColor", ""],
-        ["overlayTextColor", "0xFFFFFF"],
-        ["overlayBasePosition", "topWindow"],
-        ["overlayOffsetX", 0],
-        ["overlayOffsetY", 0],
-    ]
-    for _v in _list
-        list.Push(["caret" _v[1], _v[2]]), list.Push(["cursor" _v[1], _v[3]])
-    for i in list {
-        key := i[1]
-        switch key {
-            case "overlayText":
-                val := i18n(v)
-            case "overlayBgColor", "caretSymbolTextBgColor", "caretSymbolShapeColor", "cursorSymbolTextBgColor", "cursorSymbolShapeColor", "borderColor":
-                val := stateVal.%v%.color
-            case "caretSymbolPicturePath", "cursorSymbolPicturePath":
-                val := "default-triangle-" stateVal.%v%.colorText ".png"
-            case "caretSymbolTextContent", "cursorSymbolTextContent":
-                val := isChinese ? SubStr(i18n(v), 1, 1) : v
-            default:
-                val := i[2]
-        }
-        var.%key v% := readIni(key v, val)
+loadConfig() {
+    global var
+    var := {
+        screenNum: MonitorGetCount(),
+        screenList: getScreenInfo(),
+        cursorInfo: Map(
+            "ARROW", [32512, "aero_arrow.cur"],  ; 普通选择
+            "IBEAM", [32513, "beam_m.cur"],  ; 文本选择/文本输入
+            "WAIT", [32514, "aero_busy.ani"],  ; 繁忙
+            "CROSSHAIR", [32515, "cross_m.cur"],  ; 精度选择
+            "UPARROW", [32516, "aero_up.cur"],  ; 备用选择
+            "SIZENWSE", [32642, "aero_nwse.cur"],  ; 对角线调整大小 左上=>右下
+            "SIZENESW", [32643, "aero_nesw.cur"],  ; 对角线调整大小 左下=>右上
+            "SIZEWE", [32644, "aero_ew.cur"],  ; 水平调整大小
+            "SIZENS", [32645, "aero_ns.cur"],  ; 垂直调整大小
+            "SIZEALL", [32646, "aero_move.cur"],  ; 移动
+            "NO", [32648, "aero_unavail.cur"],  ; 无法(禁用)
+            "HAND", [32649, "aero_link.cur"],  ; 链接选择
+            "APPSTARTING", [32650, "aero_working.ani"],  ; 在后台工作
+            "HELP", [32651, "aero_helpsel.cur"],  ; 帮助选择
+            "PIN", [32671, "aero_pin.cur"],  ; 位置选择
+            "PERSON", [32672, "aero_person.cur"],  ; 人员选择
+            "NWPEN", [32631, "aero_pen.cur"],  ; 手写
+        ),
+        modeNameList: ["GUI", "UIA", "HOOK", "HOOK_DLL", "MSAA", "WPF", "ACC", "JAB"],
+        loadOnlyIBeamCursor: readIni("loadOnlyIBeamCursor", 0),
+        language: currentLang,
+        ; 开机自启动
+        launchAtStartup: readIni("launchAtStartup", 0),
+        ; 输入法模式
+        inputMethodDetectionMode: readIni("inputMethodDetectionMode", "general"),
+        checkUpdateOnStartup: readIni("checkUpdateOnStartup", 1),
+        ; 当运行 zip 版本时，是否直接以管理员权限运行
+        runCodeWithAdmin: readIni("runCodeWithAdmin", 0),
+        ; 默认输入法状态，在自定义模式下，如果所有规则都不匹配，则返回此默认状态
+        inputMethodBaseState: readIni("inputMethodBaseState", "EN"),
+        ; 获取输入法状态的超时时间
+        inputMethodDetectionTimeout: readIni("inputMethodDetectionTimeout", 200),
+        ; 是否保持大写锁定状态
+        keepCapsLockWhenStateSwitch: readIni("keepCapsLockWhenStateSwitch", 0),
+        keepCapsLockWhenKeyboardSwitch: readIni("keepCapsLockWhenKeyboardSwitch", 0),
+        ; 是否将输入法状态导出
+        exportState: readIni("exportState", 0),
+        exportStateFile: A_Temp "\abgox.InputTip.State",
+        ; 是否改变鼠标样式
+        cursorActive: readIni("cursorActive", 0),
+        ; 是否显示状态悬浮小窗
+        overlayActive: readIni("overlayActive", 0),
+        overlayOnlyFocusScreen: readIni("overlayOnlyFocusScreen", 0),
+        overlayCornerPreference: readIni("overlayCornerPreference", 3),
+        overlayAnimation: readIni("overlayAnimation", 1),
+        overlayReshowOnProcessChange: readIni("overlayReshowOnProcessChange", 0),
+        overlayReshowOnTitleChange: readIni("overlayReshowOnTitleChange", 0),
+        overlayReshowOnClassChange: readIni("overlayReshowOnClassChange", 0),
+        overlayShowOnNormal: readIni("overlayShowOnNormal", 1),
+        overlayShowOnMaximized: readIni("overlayShowOnMaximized", 1),
+        overlayShowOnFullscreen: readIni("overlayShowOnFullscreen", 1),
+        overlayHideDelay: readIni("overlayHideDelay", 2000),
+        overlayShowMode: readIni("overlayShowMode", "blacklist"),
+        overlayTextWeight: readIni("overlayTextWeight", 700),
+        overlayTransparent: readIni("overlayTransparent", 255),
+        overlayEdgeStyle: readIni("overlayEdgeStyle", 0),
+        borderActive: readIni("borderActive", 0),
+        borderReshowOnProcessChange: readIni("borderReshowOnProcessChange", 0),
+        borderReshowOnTitleChange: readIni("borderReshowOnTitleChange", 0),
+        borderReshowOnClassChange: readIni("borderReshowOnClassChange", 0),
+        borderShowOnMaximizedTop: readIni("borderShowOnMaximizedTop", 1),
+        borderShowOnMaximizedBottom: readIni("borderShowOnMaximizedBottom", 1),
+        borderShowOnMaximizedLeft: readIni("borderShowOnMaximizedLeft", 1),
+        borderShowOnMaximizedRight: readIni("borderShowOnMaximizedRight", 1),
+        borderShowOnFullscreenTop: readIni("borderShowOnFullscreenTop", 1),
+        borderShowOnFullscreenBottom: readIni("borderShowOnFullscreenBottom", 1),
+        borderShowOnFullscreenLeft: readIni("borderShowOnFullscreenLeft", 1),
+        borderShowOnFullscreenRight: readIni("borderShowOnFullscreenRight", 1),
+        borderShowOnNormal: readIni("borderShowOnNormal", 1),
+        borderShowOnMaximized: readIni("borderShowOnMaximized", 1),
+        borderShowOnFullscreen: readIni("borderShowOnFullscreen", 1),
+        borderHideDelay: readIni("borderHideDelay", 0),
+        borderShowMode: readIni("borderShowMode", "blacklist"),
+        borderWidthPinned: readIni("borderWidthPinned", 3),
+        borderColorPinned: readIni("borderColorPinned", "0x00CCCC"),
+        ; 符号
+        caretSymbolType: readIni("caretSymbolType", 0),
+        caretSymbolHideDelay: readIni("caretSymbolHideDelay", 0),
+        caretSymbolTextEdgeStyle: readIni("caretSymbolTextEdgeStyle", 0),
+        caretSymbolShapeEdgeStyle: readIni("caretSymbolShapeEdgeStyle", 0),
+        caretSymbolTextCornerPreference: readIni("caretSymbolTextCornerPreference", 3),
+        caretSymbolShapeCornerPreference: readIni("caretSymbolShapeCornerPreference", 3),
+        ; 垂直偏移量的参考原点
+        caretSymbolOriginY: readIni("caretSymbolOriginY", "below"),
+        ; 在鼠标附近显示符号
+        cursorSymbolType: readIni("cursorSymbolType", 0),
+        cursorSymbolShowMode: readIni("cursorSymbolShowMode", "blacklist"),
+        cursorSymbolHideDelay: readIni("cursorSymbolHideDelay", 0),
+        cursorSymbolTextEdgeStyle: readIni("cursorSymbolTextEdgeStyle", 0),
+        cursorSymbolShapeEdgeStyle: readIni("cursorSymbolShapeEdgeStyle", 0),
+        cursorSymbolTextCornerPreference: readIni("cursorSymbolTextCornerPreference", 3),
+        cursorSymbolShapeCornerPreference: readIni("cursorSymbolShapeCornerPreference", 3),
+        menuAnimation: readIni("menuAnimation", 1),
+        menuFontSize: Max(readIni("menuFontSize", 16), 12),
+        ; 轮询响应间隔
+        pollInterval: readIni("pollInterval", 20),
+        ; 托盘菜单图标
+        iconRunning: readIni("iconRunning", "default-app.png"),
+        iconPaused: readIni("iconPaused", "default-app-paused.png"),
+        ; 启用 JAB/JetBrains 支持
+        symbolJABActive: readIni("symbolJABActive", 0),
+        enableKeyStats: readIni("enableKeyStats", 0),
+        enableCustomTrayTip: readIni("enableCustomTrayTip", 0),
+        trayTipTemplate: readIni("trayTipTemplate", i18n("trayTipTemplate.content")),
+        keyStatsTemplate: readIni("keyStatsTemplate", i18n("keyStatsTemplate.content"))
     }
-    defaultSymbolMap.Set("default-triangle-" stateVal.%v%.colorText ".png", 1)
+    var._paused := 0
+    var._keyStatsTimerRunning := 0
+    var._previewOffsetMap := Map() ; 用于窗口偏移量的实时预览
+    var._matchCache := Map()
+    var._ruleIds := Map()
+
+    if keyOf([12, 14, 16, 18, 20], var.menuFontSize)
+        fontOpt[1] := "s" Max(var.menuFontSize, 12)
+    else
+        var.menuFontSize := 16
+
+    ; 自定义模式下定义的模式规则
+    var.inputMethodDetectionRule := readIni("inputMethodDetectionRule", "")
+    var.inputMethodDetectionRules := StrSplit(var.inputMethodDetectionRule, "|")
+
+    global defaultSymbolMap := Map()
+
+    _list := [
+        ["SymbolPicturePath", "", ""],
+        ["SymbolPictureOffsetX", -25, 0],
+        ["SymbolPictureOffsetY", 0, 30],
+        ["SymbolPictureWidth", 20, 20],
+        ["SymbolPictureHeight", 20, 20],
+        ["SymbolShapeColor", "", ""],
+        ["SymbolShapeOffsetX", 0, 0],
+        ["SymbolShapeOffsetY", 0, 30],
+        ["SymbolShapeWidth", 12, 12],
+        ["SymbolShapeHeight", 12, 12],
+        ["SymbolShapeTransparent", 255, 255],
+        ["SymbolTextContent", "", ""],
+        ["SymbolTextBgColor", "", ""],
+        ["SymbolTextColor", "0xFFFFFF", "0xFFFFFF"],
+        ["SymbolTextFont", "Microsoft YaHei", "Microsoft YaHei"],
+        ["SymbolTextWeight", 700, 700],
+        ["SymbolTextTransparent", 255, 255],
+        ["SymbolTextSize", 16, 16],
+        ["SymbolTextOffsetX", 0, 0],
+        ["SymbolTextOffsetY", 0, 30],
+    ]
+
+    for v in stateList {
+        list := [
+            ["borderWidth", 3],
+            ["borderColor", ""],
+            ["overlayText", ""],
+            ["overlayTextFont", "Microsoft YaHei"],
+            ["overlayTextSize", 16],
+            ["overlayTextWeight", 700],
+            ["overlayTransparent", 255],
+            ["overlayBgColor", ""],
+            ["overlayTextColor", "0xFFFFFF"],
+            ["overlayBasePosition", "topWindow"],
+            ["overlayOffsetX", 0],
+            ["overlayOffsetY", 0],
+        ]
+        for _v in _list
+            list.Push(["caret" _v[1], _v[2]]), list.Push(["cursor" _v[1], _v[3]])
+        for i in list {
+            key := i[1]
+            switch key {
+                case "overlayText":
+                    val := i18n(v)
+                case "overlayBgColor", "caretSymbolTextBgColor", "caretSymbolShapeColor", "cursorSymbolTextBgColor", "cursorSymbolShapeColor", "borderColor":
+                    val := stateVal.%v%.color
+                case "caretSymbolPicturePath", "cursorSymbolPicturePath":
+                    val := "default-triangle-" stateVal.%v%.colorText ".png"
+                case "caretSymbolTextContent", "cursorSymbolTextContent":
+                    val := isChinese ? SubStr(i18n(v), 1, 1) : v
+                default:
+                    val := i[2]
+            }
+            var.%key v% := readIni(key v, val)
+        }
+        defaultSymbolMap.Set("default-triangle-" stateVal.%v%.colorText ".png", 1)
+    }
 }
+
+loadConfig()
+
+try updateUIC()
 
 windowRuleKeys := ["process", "condition", "class", "trigger", "title", "offset", "capture", "captureOffset", "hotkey", "idleTimer", "textMonitor", "hotkeyMonitor"]
 
@@ -209,12 +222,12 @@ conditionTextMap := Map()
 for v in windowConditionKeyList
     conditionTextMap.Set(i18n("condition." v), v)
 
-
 allTriggerKeyList := ["hotkey"]
 switchTriggerKeyList := [
     "switchStateCaps-CapsLock",
     "switchStateCN-IME", "switchStateCN-LShift", "switchStateCN-RShift", "switchStateCN-CtrlSpace",
     "switchStateEN-IME", "switchStateEN-LShift", "switchStateEN-RShift", "switchStateEN-CtrlSpace",
+    "switchStateCN/EN-IME", "switchStateCN/EN-LShift", "switchStateCN/EN-RShift", "switchStateCN/EN-CtrlSpace",
     "switchKeyboardCN", "switchKeyboardUS",
     "switchKeyboardJP", "switchKeyboardJPHiragana", "switchKeyboardJPKatakana", "switchKeyboardJPHalfKana", "switchKeyboardJPFullAlpha", "switchKeyboardJPHalfAlpha",
     "switchKeyboardKR", "switchKeyboardKRHangul", "switchKeyboardKRAlpha",
@@ -232,8 +245,8 @@ hotkeyTriggerKeyList.Push("showStateCode", "showCaptureMode")
 allTriggerKeyList.Push("none", "showStateCode", "showCaptureMode")
 
 windowTriggerKeyList := triggerKeyList.Clone()
-windowTriggerKeyList.InsertAt(10, "ignoreStateSwitch")
-windowTriggerKeyList.InsertAt(22, "ignoreKeyboardSwitch")
+windowTriggerKeyList.InsertAt(1, "ignoreStateSwitch")
+windowTriggerKeyList.InsertAt(15, "ignoreKeyboardSwitch")
 windowTriggerKeyList.Push("showStateCode", "showCaptureMode")
 allTriggerKeyList.Push("ignoreStateSwitch", "ignoreKeyboardSwitch")
 
@@ -245,14 +258,18 @@ runTriggers(triggers, *) {
     for trigger in triggers {
         switch trigger {
             case "switchStateCaps-CapsLock": _switchState("Caps", "{CapsLock}")
+            case "switchStateCN-IME": _switchState("CN", "IME")
             case "switchStateCN-LShift": _switchState("CN", "{LShift}")
             case "switchStateCN-RShift": _switchState("CN", "{RShift}")
             case "switchStateCN-CtrlSpace": _switchState("CN", "{Ctrl Down}{Space Down}{Ctrl Up}{Space Up}")
-            case "switchStateCN-IME": _switchState("CN", "IME")
+            case "switchStateEN-IME": _switchState("EN", "IME")
             case "switchStateEN-LShift": _switchState("EN", "{LShift}")
             case "switchStateEN-RShift": _switchState("EN", "{RShift}")
             case "switchStateEN-CtrlSpace": _switchState("EN", "{Ctrl Down}{Space Down}{Ctrl Up}{Space Up}")
-            case "switchStateEN-IME": _switchState("EN", "IME")
+            case "switchStateCN/EN-IME": _switchState(currentState == "CN" ? "EN" : "CN", "IME")
+            case "switchStateCN/EN-LShift": _switchState(currentState == "CN" ? "EN" : "CN", "{LShift}")
+            case "switchStateCN/EN-RShift": _switchState(currentState == "CN" ? "EN" : "CN", "{RShift}")
+            case "switchStateCN/EN-CtrlSpace": _switchState(currentState == "CN" ? "EN" : "CN", "{Ctrl Down}{Space Down}{Ctrl Up}{Space Up}")
             case "switchKeyboardCN": switchKeyboard("CN")
             case "switchKeyboardUS": switchKeyboard("US")
             case "switchKeyboardJP": switchKeyboard("JP")
@@ -288,12 +305,12 @@ runTriggers(triggers, *) {
     }
 }
 
-returnTriggers(exeName, exeTitle, exeClass) {
+returnTriggers() {
     conditionalTriggers := []
     unconditionalTriggers := []
 
     for trigger in windowTriggerKeyList {
-        rules := matchWindowRules(exeName, exeTitle, exeClass, var.WindowRule[trigger])
+        rules := matchWindowRules(var.WindowRule[trigger])
 
         for rule in rules {
             if !rule.trigger
@@ -301,7 +318,7 @@ returnTriggers(exeName, exeTitle, exeClass) {
             if rule.condition {
                 if rule.condition == "idleTimer" || rule.condition == "textMonitor" || rule.condition == "hotkeyMonitor"
                     continue
-                if trigger == "exit" && exeName == "explorer.exe"
+                if trigger == "exit" && exeProcess == "explorer.exe"
                     continue
                 conditionalTriggers.Push(trigger)
             } else {
@@ -321,11 +338,6 @@ textToState(stateText) {
             return state
     }
 }
-
-
-var._previewOffsetMap := Map() ; 用于窗口偏移量的实时预览
-var._matchCache := Map()
-var._ruleIds := Map()
 
 parseWindowRule()
 
@@ -500,19 +512,19 @@ parseWindowRule() {
 
     Critical("Off")
 }
-getMatchingRuleLists(exeName, triggerMap, hotkey := 0) {
-    cacheKey := exeName . "|" . ObjPtr(triggerMap)
+getMatchingRuleLists(triggerMap, hotkey := 0) {
+    cacheKey := exeProcess "|" ObjPtr(triggerMap)
     if var._matchCache.Has(cacheKey)
         return var._matchCache[cacheKey]
 
     result := []
-    if triggerMap.Has(exeName)
-        result.Push(triggerMap[exeName])
+    if triggerMap.Has(exeProcess)
+        result.Push(triggerMap[exeProcess])
 
     for key, ruleList in triggerMap {
-        if (key == "" && !hotkey) || key == exeName
+        if (key == "" && !hotkey) || key == exeProcess
             continue
-        if safeRegexMatch(exeName, key)
+        if safeRegexMatch(exeProcess, key)
             result.Push(ruleList)
     }
 
@@ -521,33 +533,24 @@ getMatchingRuleLists(exeName, triggerMap, hotkey := 0) {
     return result
 }
 
-matchCondition(rule, exeTitle, exeClass) {
+matchCondition(rule) {
     switch rule.condition {
         case "class":
-            return safeRegexMatch(exeClass, rule.class)
+            return safeRegexMatch(exeClass, rule.class) || (exeControl != "" && exeControl != exeClass && safeRegexMatch(exeControl, rule.class))
         case "title":
             return safeRegexMatch(exeTitle, rule.title)
         case "classAndTitle":
-            return safeRegexMatch(exeClass, rule.class) && safeRegexMatch(exeTitle, rule.title)
+            return (safeRegexMatch(exeClass, rule.class) || (exeControl != "" && exeControl != exeClass && safeRegexMatch(exeControl, rule.class))) && safeRegexMatch(exeTitle, rule.title)
         default:
             return true
     }
 }
 
-/**
- * 匹配所有符合条件的规则
- * 规则逻辑：相同 Trigger 下只保留第一个命中的，不同 Trigger 互不影响
- * @param {String} exeName 进程名
- * @param {String} exeTitle 窗口标题
- * @param {String} exeClass 窗口类名
- * @param {Map} triggerMap 包含所有规则的 Map
- * @returns {Array} 命中的规则数组
- */
-matchWindowRules(exeName, exeTitle, exeClass, triggerMap) {
+matchWindowRules(triggerMap) {
     conditionalTriggers := []
     unconditionalTriggers := []
 
-    ruleLists := getMatchingRuleLists(exeName, triggerMap)
+    ruleLists := getMatchingRuleLists(triggerMap)
     if ruleLists.Length == 0
         return unconditionalTriggers
 
@@ -556,7 +559,7 @@ matchWindowRules(exeName, exeTitle, exeClass, triggerMap) {
             if !rule.trigger
                 continue
 
-            isMatch := matchCondition(rule, exeTitle, exeClass)
+            isMatch := matchCondition(rule)
 
             if !isMatch
                 continue
@@ -574,8 +577,8 @@ matchWindowRules(exeName, exeTitle, exeClass, triggerMap) {
     return unconditionalTriggers
 }
 
-matchWindowDisplay(exeName, exeTitle, exeClass, triggerMap) {
-    ruleLists := getMatchingRuleLists(exeName, triggerMap)
+matchWindowDisplay(triggerMap) {
+    ruleLists := getMatchingRuleLists(triggerMap)
     if ruleLists.Length == 0
         return 0
 
@@ -583,7 +586,7 @@ matchWindowDisplay(exeName, exeTitle, exeClass, triggerMap) {
         for rule in ruleList {
             if !rule.trigger
                 continue
-            if matchCondition(rule, exeTitle, exeClass)
+            if matchCondition(rule)
                 return 1
         }
     }
@@ -610,12 +613,12 @@ updateScreenOffset(prefix) {
 
 getCaretCapture() {
     captureMap := var.WindowCaretSymbolRule["capture"]
-    if captureMap.Has(exeName)
-        return captureMap[exeName]
+    if captureMap.Has(exeProcess)
+        return captureMap[exeProcess]
     for key, rule in captureMap {
         if key == ""
             continue
-        if RegExMatch(exeName, key)
+        if safeRegexMatch(exeProcess, key)
             return rule
     }
     return { capture: "", captureOffset: "" }
@@ -720,14 +723,14 @@ updateSymbolDelay() {
     SetTimer(onDelayTick, 25)
 }
 onDelayTick() {
-    if (var.caretSymbolHideDelay == 0) {
+    if var.caretSymbolHideDelay == 0 {
         SetTimer(onDelayTick, 0)
         delayState.needHide := 0
         delayState.isWait := 0
         return
     }
 
-    if (GetKeyState("LButton", "P")) {
+    if GetKeyState("LButton", "P") {
         delayState.needHide := 0
         delayState.isWait := 1
         SetTimer(() => delayState.isWait := 0, -returnMaxTimerNumber(var.caretSymbolHideDelay))
@@ -736,9 +739,8 @@ onDelayTick() {
     if A_TimeIdleKeyboard <= leaveDelay
         delayState.timer := 0
 
-    if (!delayState.isWait) {
-        if (A_TimeIdleKeyboard >= var.caretSymbolHideDelay - var.pollInterval
-            || delayState.timer >= var.caretSymbolHideDelay) {
+    if !delayState.isWait {
+        if A_TimeIdleKeyboard >= var.caretSymbolHideDelay - var.pollInterval || delayState.timer >= var.caretSymbolHideDelay {
             delayState.needHide := 1
             hideCaretSymbol()
             delayState.timer := 0
@@ -785,7 +787,7 @@ initMonitor() {
 
     ; 文本监控
     newTextRules := []
-    for ruleList in getMatchingRuleLists(exeName, var.WindowTextMonitorRule) {
+    for ruleList in getMatchingRuleLists(var.WindowTextMonitorRule) {
         for rule in ruleList
             newTextRules.Push({ textMonitor: rule.textMonitor, trigger: rule.trigger })
     }
@@ -794,7 +796,7 @@ initMonitor() {
 
     ; 热键监控
     newHotkeyRules := []
-    for ruleList in getMatchingRuleLists(exeName, var.WindowHotkeyMonitorRule) {
+    for ruleList in getMatchingRuleLists(var.WindowHotkeyMonitorRule) {
         for rule in ruleList
             newHotkeyRules.Push({ hotkeyMonitor: rule.hotkeyMonitor, trigger: rule.trigger })
     }
@@ -842,9 +844,9 @@ onIdleTimerTick() {
 }
 
 runIdleTimer() {
-    for ruleList in getMatchingRuleLists(exeName, var.WindowIdleTimerRule) {
+    for ruleList in getMatchingRuleLists(var.WindowIdleTimerRule) {
         for rule in ruleList {
-            if !matchWindowRules(exeName, exeTitle, exeClass, var.WindowRule[rule.trigger]).Length
+            if !matchWindowRules(var.WindowRule[rule.trigger]).Length
                 continue
             updateIdleTimer(rule.idleTimer, rule.trigger)
             return
@@ -860,7 +862,7 @@ textMonitorState := {
 
 parseTextRule(userRegex) {
     if !RegExMatch(userRegex, "^[imnsxADJOUX]*\)")
-        userRegex := "i)" . userRegex
+        userRegex := "i)" userRegex
     try {
         RegExMatch("", userRegex)
     } catch {
@@ -965,7 +967,7 @@ stopHotkeyMonitor() {
 }
 
 onHotkeyMonitor(hk) {
-    if (A_TickCount - hotkeyMonitorState.lastTime > 5000)
+    if A_TickCount - hotkeyMonitorState.lastTime > 5000
         hotkeyMonitorState.buffer := []
     hotkeyMonitorState.lastTime := A_TickCount
 
@@ -1018,53 +1020,40 @@ var._lastCaptureMode := ""
  * @link https://github.com/Tebayaki/AutoHotkeyScripts/blob/main/lib/GetCaretPosEx/GetCaretPosEx.ahk
  */
 GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
-    hwnd := 0
+    if !(hwnd := getFocusedHwnd())
+        return var._lastCaptureMode := ""
     captureModeChain := getCaretCapture().capture
     modes := StrSplit(captureModeChain, ">")
-    if modes.Length {
-        for mode in modes {
-            if _trySingleCaptureMode(mode) {
-                var._lastCaptureMode := mode
-                return 1
-            }
-        }
-    } else {
-        if getCaretPosFromGui(&hwnd) {
-            var._lastCaptureMode := "GUI"
-            return 1
-        }
-        if getCaretPosFromHook(0) {
-            var._lastCaptureMode := "HOOK"
-            return 1
-        }
-        if getCaretPosFromUIA() {
-            var._lastCaptureMode := "UIA"
-            return 1
-        }
-        if !hwnd
-            hwnd := getHwnd()
-        if getCaretPosFromMSAA() {
-            var._lastCaptureMode := "MSAA"
-            return 1
+    if !modes.Length {
+        if getCaretPosFromGui(&hwnd)
+            return var._lastCaptureMode := "GUI"
+        if hwnd {
+            try
+                className := WinGetClass(hwnd)
+            catch
+                className := ""
+            modes := className ~= "^(?:Windows|Microsoft)\.UI\..+" ? ["UIA", "HOOK", "MSAA"] : ["HOOK", "UIA", "MSAA"]
+        } else {
+            modes := []
         }
     }
-    var._lastCaptureMode := ""
-    return 0
+    for mode in modes {
+        if _trySingleCaptureMode(mode)
+            return var._lastCaptureMode := mode
+    }
+    return var._lastCaptureMode := ""
 
     _trySingleCaptureMode(mode) {
         switch mode {
             case "HOOK":
-                hwnd := getHwnd()
                 return getCaretPosFromHook(0)
             case "GUI":
                 return getCaretPosFromGui(&hwnd)
             case "UIA":
                 return getCaretPosFromUIA()
             case "MSAA":
-                hwnd := getHwnd()
                 return getCaretPosFromMSAA()
             case "Hook_DLL":
-                hwnd := getHwnd()
                 return getCaretPosFromHook(1)
             case "WPF":
                 return getCaretPosFromWpfCaret()
@@ -1075,27 +1064,19 @@ GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
         }
     }
 
-    getHwnd(hwnd := 0) {
-        x64 := A_PtrSize == 8
-        guiThreadInfo := Buffer(x64 ? 72 : 48)
-        NumPut("uint", guiThreadInfo.Size, guiThreadInfo)
-        if DllCall("GetGUIThreadInfo", "uint", 0, "ptr", guiThreadInfo) {
-            hwnd := NumGet(guiThreadInfo, x64 ? 16 : 12, "ptr")
-        }
-        return hwnd
-    }
-
     getCaretPosFromGui(&hwnd) {
         x64 := A_PtrSize == 8
         guiThreadInfo := Buffer(x64 ? 72 : 48)
-        NumPut("uint", guiThreadInfo.Size, guiThreadInfo)
-        if DllCall("GetGUIThreadInfo", "uint", 0, "ptr", guiThreadInfo) {
-            if hwnd := NumGet(guiThreadInfo, x64 ? 48 : 28, "ptr") {
-                getRect(guiThreadInfo.Ptr + (x64 ? 56 : 32), &left, &top, &right, &bottom)
-                clientToScreenRect(hwnd, &left, &top, &right, &bottom)
-                return true
+        try {
+            NumPut("uint", guiThreadInfo.Size, guiThreadInfo)
+            if DllCall("GetGUIThreadInfo", "uint", 0, "ptr", guiThreadInfo) {
+                if hwnd := NumGet(guiThreadInfo, x64 ? 48 : 28, "ptr") {
+                    getRect(guiThreadInfo.Ptr + (x64 ? 56 : 32), &left, &top, &right, &bottom)
+                    clientToScreenRect(hwnd, &left, &top, &right, &bottom)
+                    return true
+                }
+                hwnd := NumGet(guiThreadInfo, x64 ? 16 : 12, "ptr")
             }
-            hwnd := NumGet(guiThreadInfo, x64 ? 16 : 12, "ptr")
         }
         return false
     }
@@ -1105,21 +1086,23 @@ GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
         if !hOleacc
             return false
         static IID_IAccessible := guidFromString("{618736e0-3c3d-11cf-810c-00aa00389b71}")
-        if !DllCall("oleacc\AccessibleObjectFromWindow", "ptr", hwnd, "uint", 0xfffffff8, "ptr", IID_IAccessible, "ptr*", accCaret := ComValue(13, 0), "int") {
-            if A_PtrSize == 8 {
-                varChild := Buffer(24, 0)
-                NumPut("ushort", 3, varChild)
-                hr := ComCall(22, accCaret, "int*", &x := 0, "int*", &y := 0, "int*", &w := 0, "int*", &h := 0, "ptr", varChild, "int")
-            }
-            else {
-                hr := ComCall(22, accCaret, "int*", &x := 0, "int*", &y := 0, "int*", &w := 0, "int*", &h := 0, "int64", 3, "int64", 0, "int")
-            }
-            if !hr {
-                left := x
-                top := y
-                right := x + w
-                bottom := y + h
-                return true
+        try {
+            if !DllCall("oleacc\AccessibleObjectFromWindow", "ptr", hwnd, "uint", 0xfffffff8, "ptr", IID_IAccessible, "ptr*", accCaret := ComValue(13, 0), "int") {
+                if A_PtrSize == 8 {
+                    varChild := Buffer(24, 0)
+                    NumPut("ushort", 3, varChild)
+                    hr := ComCall(22, accCaret, "int*", &x := 0, "int*", &y := 0, "int*", &w := 0, "int*", &h := 0, "ptr", varChild, "int")
+                }
+                else {
+                    hr := ComCall(22, accCaret, "int*", &x := 0, "int*", &y := 0, "int*", &w := 0, "int*", &h := 0, "int64", 3, "int64", 0, "int")
+                }
+                if !hr {
+                    left := x
+                    top := y
+                    right := x + w
+                    bottom := y + h
+                    return true
+                }
             }
         }
         return false
@@ -1245,11 +1228,11 @@ GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
         static WM_GET_CARET_POS := DllCall("RegisterWindowMessageW", "str", "WM_GET_CARET_POS", "uint")
         if !tid := DllCall("GetWindowThreadProcessId", "ptr", hwnd, "ptr*", &pid := 0, "uint")
             return false
-        if (updateCaret) {
+        if updateCaret
             ; Update caret position
             ; There may be problems with 32-bit programs
             try SendMessage(0x010f, 0, 0, hwnd) ; WM_IME_COMPOSITION
-        }
+
         ; PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ
         if !hProcess := DllCall("OpenProcess", "uint", 1082, "int", false, "uint", pid, "ptr")
             return false
@@ -1390,9 +1373,10 @@ GetCaretPosEx(&left?, &top?, &right?, &bottom?) {
                 bottom := top + NumGet(h, 0, "int")
                 if (left | top) != 0
                     return 1
-                return 0
             }
         }
+        left := 0, top := 0, right := 0, bottom := 0
+        return 0
     }
 
     static guidFromString(str) {
